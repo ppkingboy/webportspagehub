@@ -3,21 +3,20 @@
 import PackageDescription
 
 let package = Package(
-    name: "StaticPageHub",
+    name: "WebPort",
     platforms: [
         .macOS(.v13)
     ],
     products: [
-        .executable(name: "StaticPageHub", targets: ["StaticPageHub"])
+        .executable(name: "WebPort", targets: ["WebPort"])
     ],
     targets: [
         .executableTarget(
-            name: "StaticPageHub",
-            path: "Sources/StaticPageHub",
+            name: "WebPort",
+            path: "Sources/WebPort",
             swiftSettings: [
                 .swiftLanguageMode(.v5)
             ]
         )
     ]
 )
-

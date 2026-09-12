@@ -52,9 +52,9 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
             backing: .buffered,
             defer: false
         )
-        window.title = "静态页面展示"
+        window.title = "WebPort"
         window.minSize = NSSize(width: 780, height: 600)
-        window.setFrameAutosaveName("StaticPageHubMainWindow")
+        window.setFrameAutosaveName("WebPortMainWindow")
         window.center()
 
         super.init(window: window)
@@ -200,7 +200,7 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
         imageView.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 30, weight: .medium)
         imageView.translatesAutoresizingMaskIntoConstraints = false
 
-        let title = NSTextField(labelWithString: "静态页面展示")
+        let title = NSTextField(labelWithString: "WebPort")
         title.font = .systemFont(ofSize: 24, weight: .semibold)
 
         let textStack = NSStackView(views: [title])

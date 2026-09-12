@@ -4,7 +4,7 @@ import Foundation
 final class PageDirectoryMonitor {
     private let directoryURL: URL
     private let handler: () -> Void
-    private let queue = DispatchQueue(label: "com.anhuajinhe.staticpages.pages-monitor")
+    private let queue = DispatchQueue(label: "com.webport.staticpages.pages-monitor")
     private var stream: FSEventStreamRef?
 
     init(directoryURL: URL, handler: @escaping () -> Void) {

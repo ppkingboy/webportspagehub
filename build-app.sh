@@ -4,8 +4,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PACKAGE_DIR="$ROOT_DIR/app"
-APP_NAME="静态页面展示"
-EXECUTABLE_NAME="StaticPageHub"
+APP_NAME="WebPort"
+EXECUTABLE_NAME="WebPort"
 DIST_DIR="$ROOT_DIR/dist"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 DMG_PATH="$DIST_DIR/$APP_NAME.dmg"

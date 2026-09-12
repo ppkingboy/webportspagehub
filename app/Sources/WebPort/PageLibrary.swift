@@ -53,7 +53,7 @@ final class PageLibrary {
         )
 
         rootURL = applicationSupport
-            .appendingPathComponent("安华金和静态页面", isDirectory: true)
+            .appendingPathComponent("WebPort", isDirectory: true)
             .appendingPathComponent("Web", isDirectory: true)
         metadataURL = rootURL.appendingPathComponent("pages.json")
 

@@ -53,10 +53,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.button?.image = NSImage(
             systemSymbolName: "rectangle.stack.fill",
-            accessibilityDescription: "静态页面展示"
+            accessibilityDescription: "WebPort"
         )
         item.button?.image?.isTemplate = true
-        item.button?.toolTip = "静态页面展示"
+        item.button?.toolTip = "WebPort"
         statusItem = item
         rebuildStatusMenu()
     }
@@ -108,7 +108,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
 
         let quitItem = NSMenuItem(
-            title: "退出静态页面展示",
+            title: "退出 WebPort",
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: "q"
         )

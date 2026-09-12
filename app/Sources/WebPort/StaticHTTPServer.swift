@@ -48,7 +48,7 @@ final class StaticHTTPServer {
 
     private let rootURL: URL
     private let library: PageLibrary
-    private let queue = DispatchQueue(label: "com.anhuajinhe.staticpages.http")
+    private let queue = DispatchQueue(label: "com.webport.staticpages.http")
     private var listener: NWListener?
     private var connections: [ObjectIdentifier: NWConnection] = [:]
     private var fileSenders: [ObjectIdentifier: FileSender] = [:]

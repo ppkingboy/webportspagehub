@@ -5,17 +5,17 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>zh_CN</string>
     <key>CFBundleDisplayName</key>
-    <string>静态页面展示</string>
+    <string>WebPort</string>
     <key>CFBundleExecutable</key>
-    <string>StaticPageHub</string>
+    <string>WebPort</string>
     <key>CFBundleIdentifier</key>
-    <string>com.anhuajinhe.staticpagehub</string>
+    <string>com.ppkingboy.webport</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>静态页面展示</string>
+    <string>WebPort</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>

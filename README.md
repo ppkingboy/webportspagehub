@@ -1,6 +1,6 @@
-# 静态页面展示
+# WebPort
 
-这是一个原生 macOS 应用，用于在局域网中展示静态 HTML 页面。应用内置 HTTP 服务，不依赖 Python、Node.js 或第三方运行库。
+WebPort 是一个原生 macOS 应用，用于在局域网中展示静态 HTML 页面。应用内置 HTTP 服务，不依赖 Python、Node.js 或第三方运行库。
 
 ## 功能
 
@@ -22,8 +22,8 @@
 构建完成后会生成：
 
 ```text
-dist/静态页面展示.app
-dist/静态页面展示.dmg
+dist/WebPort.app
+dist/WebPort.dmg
 ```
 
 应用包含 `arm64` 和 `x86_64` 两种架构，默认使用本机临时签名。
@@ -61,7 +61,7 @@ Web/
 页面目录位于：
 
 ```text
-~/Library/Application Support/安华金和静态页面/Web
+~/Library/Application Support/WebPort/Web
 ```
 
 名称以 `_files` 结尾的辅助资源目录不会出现在展示列表中。
