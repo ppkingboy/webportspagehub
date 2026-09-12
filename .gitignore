@@ -2,4 +2,4 @@
 .build/
 .swiftpm/
 dist/
-
+app/Resources/AppIcon.icns

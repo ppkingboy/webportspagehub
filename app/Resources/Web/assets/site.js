@@ -20,7 +20,7 @@ function pageURL(relativePath) {
 function visiblePages() {
   const query = state.query.trim().toLocaleLowerCase("zh-CN");
 
-  return state.pages.filter((page) => {
+  return state.pages.filter((page) => page.enabled !== false).filter((page) => {
     const matchesGroup = state.group === "全部" || page.group === state.group;
     const searchable = `${page.title} ${page.relativePath} ${page.group}`.toLocaleLowerCase("zh-CN");
     return matchesGroup && (!query || searchable.includes(query));
@@ -28,7 +28,8 @@ function visiblePages() {
 }
 
 function renderFilters() {
-  const allGroups = [...new Set(state.pages.map((page) => page.group))].sort(
+  const enabledPages = state.pages.filter((page) => page.enabled !== false);
+  const allGroups = [...new Set(enabledPages.map((page) => page.group))].sort(
     (left, right) => left.localeCompare(right, "zh-CN")
   );
   const filters = ["全部", ...allGroups];
@@ -50,11 +51,16 @@ function renderFilters() {
 
 function renderPages() {
   const pages = visiblePages();
+  const enabledPages = state.pages.filter((page) => page.enabled !== false);
   grid.replaceChildren(
     ...pages.map((page) => {
       const card = document.createElement("a");
       card.className = "page-card";
       card.href = pageURL(page.relativePath);
+      if (page.openInNewWindow) {
+        card.target = "_blank";
+        card.rel = "noopener";
+      }
 
       const topLine = document.createElement("div");
       topLine.className = "card-topline";
@@ -70,12 +76,17 @@ function renderPages() {
       const title = document.createElement("h2");
       title.textContent = page.title;
 
+      const description = document.createElement("p");
+      description.className = "page-description";
+      description.textContent = page.description || "";
+      description.hidden = !page.description;
+
       const path = document.createElement("div");
       path.className = "page-path";
       path.textContent = page.relativePath;
 
       topLine.append(group, open);
-      card.append(topLine, title, path);
+      card.append(topLine, title, description, path);
       return card;
     })
   );
@@ -83,9 +94,9 @@ function renderPages() {
   empty.hidden = pages.length !== 0;
   grid.hidden = pages.length === 0;
   count.textContent =
-    state.pages.length === pages.length
-      ? `共 ${state.pages.length} 个页面`
-      : `${pages.length} / ${state.pages.length} 个页面`;
+    enabledPages.length === pages.length
+      ? `共 ${enabledPages.length} 个页面`
+      : `${pages.length} / ${enabledPages.length} 个页面`;
 }
 
 function render() {
@@ -93,8 +104,10 @@ function render() {
   renderPages();
 }
 
-async function loadPages() {
-  count.textContent = "正在读取页面...";
+async function loadPages({ preserveState = false } = {}) {
+  if (!preserveState) {
+    count.textContent = "正在读取页面...";
+  }
 
   try {
     const response = await fetch("./__pages.json", { cache: "no-store" });
@@ -103,7 +116,14 @@ async function loadPages() {
     }
 
     state.pages = await response.json();
-    state.group = "全部";
+    if (!preserveState) {
+      state.group = "全部";
+    }
+
+    const groups = new Set(state.pages.map((page) => page.group));
+    if (state.group !== "全部" && !groups.has(state.group)) {
+      state.group = "全部";
+    }
     render();
   } catch (error) {
     state.pages = [];
@@ -120,3 +140,4 @@ search.addEventListener("input", (event) => {
 
 document.querySelector("#reload").addEventListener("click", loadPages);
 loadPages();
+setInterval(() => loadPages({ preserveState: true }), 10000);

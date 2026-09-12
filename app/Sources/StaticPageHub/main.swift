@@ -7,7 +7,7 @@ application.delegate = applicationDelegate
 application.setActivationPolicy(.regular)
 
 let mainMenu = NSMenu()
-let applicationMenuItem = NSMenuItem()
+let applicationMenuItem = NSMenuItem(title: "静态页面展示", action: nil, keyEquivalent: "")
 mainMenu.addItem(applicationMenuItem)
 
 let applicationMenu = NSMenu()

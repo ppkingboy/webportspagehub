@@ -1,18 +1,31 @@
 import Darwin
 import Foundation
 
+struct NetworkAddress {
+    let name: String
+    let address: String
+
+    var displayName: String {
+        "\(name)  \(address)"
+    }
+}
+
 enum LANAddress {
     static func primaryIPv4Address() -> String? {
+        allIPv4Addresses().first?.address
+    }
+
+    static func allIPv4Addresses() -> [NetworkAddress] {
         var addressPointer: UnsafeMutablePointer<ifaddrs>?
         guard getifaddrs(&addressPointer) == 0, let firstAddress = addressPointer else {
-            return nil
+            return []
         }
 
         defer {
             freeifaddrs(addressPointer)
         }
 
-        var candidates: [(name: String, address: String)] = []
+        var candidates: [NetworkAddress] = []
         var pointer: UnsafeMutablePointer<ifaddrs>? = firstAddress
 
         while let current = pointer {
@@ -44,15 +57,15 @@ enum LANAddress {
             let address = String(cString: host)
 
             if name == "en0" {
-                return address
+                candidates.insert(NetworkAddress(name: name, address: address), at: 0)
+                continue
             }
 
             if !address.hasPrefix("127.") && !name.hasPrefix("utun") {
-                candidates.append((name, address))
+                candidates.append(NetworkAddress(name: name, address: address))
             }
         }
 
-        return candidates.first?.address
+        return candidates
     }
 }
-

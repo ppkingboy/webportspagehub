@@ -1,19 +1,45 @@
 import AppKit
 
 final class MainWindowController: NSWindowController, NSTableViewDataSource, NSTableViewDelegate {
+    var onServerStateChange: ((Bool) -> Void)?
+
+    var serverIsRunning: Bool {
+        isServerRunning
+    }
+
+    var accessURLString: String {
+        baseURL.absoluteString
+    }
+
     private let library: PageLibrary
     private let server: StaticHTTPServer
     private var pages: [StaticPage] = []
+    private var networkAddresses: [NetworkAddress] = []
+    private var pageMonitor: PageDirectoryMonitor?
     private var isServerRunning = false
 
     private let statusBadge = NSTextField(labelWithString: "已停止")
     private let statusDetail = NSTextField(wrappingLabelWithString: "服务当前未启动")
     private let portField = NSTextField(string: "8000")
     private let startStopButton = NSButton(title: "启动服务", target: nil, action: nil)
+    private let bindingPopup = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let addressPopup = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let accessCodeCheckbox = NSButton(
+        checkboxWithTitle: "启用访问码",
+        target: nil,
+        action: nil
+    )
+    private let accessCodeField = NSSecureTextField(frame: .zero)
+    private let autoStartCheckbox = NSButton(
+        checkboxWithTitle: "启动时自动运行服务",
+        target: nil,
+        action: nil
+    )
     private let addressField = NSTextField(labelWithString: "启动服务后显示访问地址")
     private let copyAddressButton = NSButton(title: "复制地址", target: nil, action: nil)
     private let openHomeButton = NSButton(title: "打开展示页", target: nil, action: nil)
     private let pageCountLabel = NSTextField(labelWithString: "0 个页面")
+    private let accessLogLabel = NSTextField(labelWithString: "最近访问：--")
     private let tableView = NSTableView()
 
     init(library: PageLibrary) {
@@ -21,19 +47,23 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
         server = StaticHTTPServer(rootURL: library.rootURL, library: library)
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 820, height: 620),
+            contentRect: NSRect(x: 0, y: 0, width: 880, height: 700),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
         window.title = "静态页面展示"
-        window.minSize = NSSize(width: 720, height: 520)
+        window.minSize = NSSize(width: 780, height: 600)
+        window.setFrameAutosaveName("StaticPageHubMainWindow")
         window.center()
 
         super.init(window: window)
 
+        networkAddresses = LANAddress.allIPv4Addresses()
         configureUI()
         configureCallbacks()
+        loadPreferences()
+        startPageMonitoring()
         reloadPages()
         updateServerUI()
     }
@@ -54,6 +84,23 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
             return
         }
 
+        let accessCode: String?
+        if accessCodeCheckbox.state == .on {
+            let value = accessCodeField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !value.isEmpty else {
+                showError("启用访问码后，必须填写访问码。")
+                return
+            }
+            accessCode = value
+        } else {
+            accessCode = nil
+        }
+
+        let binding = selectedBinding
+        AppPreferences.port = Int(port)
+        AppPreferences.binding = binding
+        AppPreferences.selectedAddress = selectedAddress ?? ""
+
         statusBadge.stringValue = "启动中"
         statusBadge.layer?.backgroundColor = NSColor.systemOrange.withAlphaComponent(0.14).cgColor
         statusBadge.textColor = .systemOrange
@@ -61,7 +108,12 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
         startStopButton.isEnabled = false
 
         do {
-            try server.start(port: port)
+            try server.start(
+                port: port,
+                binding: binding,
+                selectedAddress: selectedAddress,
+                accessCode: accessCode
+            )
         } catch {
             setServerRunning(false, error: error.localizedDescription)
         }
@@ -76,6 +128,36 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
         setServerRunning(false, error: nil)
     }
 
+    func toggleServerFromMenu() {
+        if isServerRunning {
+            stopServer()
+        } else {
+            startServer()
+        }
+    }
+
+    func copyAccessAddress() {
+        guard isServerRunning else {
+            return
+        }
+
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(addressField.stringValue, forType: .string)
+    }
+
+    func openHomePage() {
+        guard isServerRunning else {
+            return
+        }
+        NSWorkspace.shared.open(baseURL)
+    }
+
+    func showMainWindow() {
+        showWindow(nil)
+        window?.makeKeyAndOrderFront(nil)
+        NSApplication.shared.activate(ignoringOtherApps: true)
+    }
+
     private func configureUI() {
         guard let contentView = window?.contentView else {
             return
@@ -84,7 +166,7 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
         let mainStack = NSStackView()
         mainStack.orientation = .vertical
         mainStack.alignment = .width
-        mainStack.spacing = 16
+        mainStack.spacing = 14
         mainStack.edgeInsets = NSEdgeInsets(top: 22, left: 24, bottom: 22, right: 24)
         mainStack.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(mainStack)
@@ -100,9 +182,12 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
         mainStack.addArrangedSubview(makeSeparator())
         mainStack.addArrangedSubview(makeStatusRow())
         mainStack.addArrangedSubview(makeServerControls())
+        mainStack.addArrangedSubview(makeBindingControls())
+        mainStack.addArrangedSubview(makeSecurityControls())
         mainStack.addArrangedSubview(makeAddressRow())
         mainStack.addArrangedSubview(makePageHeader())
         mainStack.addArrangedSubview(makeTable())
+        mainStack.addArrangedSubview(accessLogLabel)
     }
 
     private func makeHeader() -> NSView {
@@ -121,7 +206,6 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
         let textStack = NSStackView(views: [title])
         textStack.orientation = .vertical
         textStack.alignment = .leading
-        textStack.spacing = 5
 
         let row = NSStackView(views: [imageView, textStack])
         row.orientation = .horizontal
@@ -191,8 +275,60 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
         return row
     }
 
+    private func makeBindingControls() -> NSView {
+        let bindingLabel = NSTextField(labelWithString: "访问范围")
+        bindingLabel.font = .systemFont(ofSize: 13, weight: .medium)
+
+        bindingPopup.addItems(withTitles: ServerBinding.allCases.map(\.title))
+        bindingPopup.target = self
+        bindingPopup.action = #selector(bindingChanged)
+
+        let addressLabel = NSTextField(labelWithString: "网卡")
+        addressLabel.font = .systemFont(ofSize: 13, weight: .medium)
+
+        addressPopup.target = self
+        addressPopup.action = #selector(addressChanged)
+
+        let row = NSStackView(views: [bindingLabel, bindingPopup, addressLabel, addressPopup])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 10
+
+        bindingPopup.widthAnchor.constraint(equalToConstant: 128).isActive = true
+        addressPopup.widthAnchor.constraint(greaterThanOrEqualToConstant: 210).isActive = true
+
+        return row
+    }
+
+    private func makeSecurityControls() -> NSView {
+        accessCodeCheckbox.target = self
+        accessCodeCheckbox.action = #selector(accessCodeChanged)
+
+        accessCodeField.placeholderString = "访问码"
+        accessCodeField.isEnabled = false
+        accessCodeField.widthAnchor.constraint(equalToConstant: 180).isActive = true
+
+        autoStartCheckbox.target = self
+        autoStartCheckbox.action = #selector(autoStartChanged)
+
+        let spacer = NSView()
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+
+        let row = NSStackView(views: [
+            accessCodeCheckbox,
+            accessCodeField,
+            spacer,
+            autoStartCheckbox
+        ])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 10
+
+        return row
+    }
+
     private func makeAddressRow() -> NSView {
-        let label = NSTextField(labelWithString: "局域网地址")
+        let label = NSTextField(labelWithString: "访问地址")
         label.font = .systemFont(ofSize: 13, weight: .medium)
 
         addressField.font = .monospacedSystemFont(ofSize: 13, weight: .medium)
@@ -271,7 +407,7 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
         scrollView.layer?.cornerRadius = 8
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.setContentHuggingPriority(.defaultLow, for: .vertical)
-        scrollView.heightAnchor.constraint(greaterThanOrEqualToConstant: 220).isActive = true
+        scrollView.heightAnchor.constraint(greaterThanOrEqualToConstant: 210).isActive = true
 
         return scrollView
     }
@@ -282,18 +418,76 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
                 self?.setServerRunning(running, error: error)
             }
         }
+
+        server.onAccess = { [weak self] entry in
+            DispatchQueue.main.async {
+                self?.updateAccessLog(entry)
+            }
+        }
+
+        accessLogLabel.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
+        accessLogLabel.textColor = .tertiaryLabelColor
+        accessLogLabel.lineBreakMode = .byTruncatingMiddle
+    }
+
+    private func loadPreferences() {
+        portField.stringValue = String(AppPreferences.port)
+
+        if let index = ServerBinding.allCases.firstIndex(of: AppPreferences.binding) {
+            bindingPopup.selectItem(at: index)
+        }
+
+        loadNetworkAddresses()
+        autoStartCheckbox.state = AppPreferences.autoStart ? .on : .off
+        bindingChanged()
+    }
+
+    private func loadNetworkAddresses() {
+        addressPopup.removeAllItems()
+
+        if networkAddresses.isEmpty {
+            networkAddresses = [NetworkAddress(name: "本机", address: "127.0.0.1")]
+        }
+
+        for address in networkAddresses {
+            addressPopup.addItem(withTitle: address.displayName)
+            addressPopup.lastItem?.representedObject = address.address
+        }
+
+        let preferredAddress = AppPreferences.selectedAddress
+        if let index = addressPopup.itemArray.firstIndex(where: {
+            ($0.representedObject as? String) == preferredAddress
+        }) {
+            addressPopup.selectItem(at: index)
+        } else {
+            addressPopup.selectItem(at: 0)
+        }
+    }
+
+    private func startPageMonitoring() {
+        pageMonitor = PageDirectoryMonitor(directoryURL: library.rootURL) { [weak self] in
+            DispatchQueue.main.async {
+                self?.reloadPages()
+            }
+        }
     }
 
     private func setServerRunning(_ running: Bool, error: String?) {
         isServerRunning = running
         startStopButton.isEnabled = true
         portField.isEnabled = !running
+        bindingPopup.isEnabled = !running
+        addressPopup.isEnabled = !running && selectedBinding != .localhost
+        accessCodeCheckbox.isEnabled = !running
+        accessCodeField.isEnabled = !running && accessCodeCheckbox.state == .on
 
         if running {
             statusBadge.stringValue = "运行中"
             statusBadge.layer?.backgroundColor = NSColor.systemGreen.withAlphaComponent(0.14).cgColor
             statusBadge.textColor = .systemGreen
-            statusDetail.stringValue = "服务已启动，其他设备可通过局域网地址访问。"
+            statusDetail.stringValue = accessCodeCheckbox.state == .on
+                ? "服务已启动，访问码已启用。"
+                : "服务已启动，其他设备可通过访问地址连接。"
             startStopButton.title = "停止服务"
             addressField.stringValue = baseURL.absoluteString
         } else {
@@ -304,7 +498,6 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
             statusBadge.textColor = error == nil ? .secondaryLabelColor : .systemRed
             statusDetail.stringValue = error ?? "服务当前未启动"
             startStopButton.title = "启动服务"
-            startStopButton.isEnabled = true
             addressField.stringValue = "启动服务后显示访问地址"
 
             if let error {
@@ -314,6 +507,7 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
 
         copyAddressButton.isEnabled = running
         openHomeButton.isEnabled = running
+        onServerStateChange?(running)
     }
 
     private func updateServerUI() {
@@ -326,8 +520,36 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
         tableView.reloadData()
     }
 
+    private func updateAccessLog(_ entry: AccessLogEntry) {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.dateFormat = "HH:mm:ss"
+        accessLogLabel.stringValue =
+            "最近访问：\(formatter.string(from: entry.date))  \(entry.remoteAddress)  \(entry.path)"
+    }
+
+    private var selectedBinding: ServerBinding {
+        let index = max(bindingPopup.indexOfSelectedItem, 0)
+        return ServerBinding.allCases[index]
+    }
+
+    private var selectedAddress: String? {
+        if selectedBinding == .localhost {
+            return "127.0.0.1"
+        }
+        return addressPopup.selectedItem?.representedObject as? String
+    }
+
     private var baseURL: URL {
-        let host = LANAddress.primaryIPv4Address() ?? "127.0.0.1"
+        let host: String
+
+        switch selectedBinding {
+        case .localhost:
+            host = "127.0.0.1"
+        case .lan, .all:
+            host = selectedAddress ?? LANAddress.primaryIPv4Address() ?? "127.0.0.1"
+        }
+
         let port = portField.stringValue.isEmpty ? "8000" : portField.stringValue
         return URL(string: "http://\(host):\(port)/")!
     }
@@ -342,20 +564,37 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
     }
 
     @objc private func toggleServer() {
-        if isServerRunning {
-            stopServer()
-        } else {
-            startServer()
+        toggleServerFromMenu()
+    }
+
+    @objc private func bindingChanged() {
+        let binding = selectedBinding
+        AppPreferences.binding = binding
+        addressPopup.isEnabled = !isServerRunning && binding != .localhost
+        accessCodeField.isEnabled = !isServerRunning && accessCodeCheckbox.state == .on
+    }
+
+    @objc private func addressChanged() {
+        AppPreferences.selectedAddress = selectedAddress ?? ""
+    }
+
+    @objc private func accessCodeChanged() {
+        accessCodeField.isEnabled = accessCodeCheckbox.state == .on && !isServerRunning
+        if accessCodeCheckbox.state == .off {
+            accessCodeField.stringValue = ""
         }
     }
 
+    @objc private func autoStartChanged() {
+        AppPreferences.autoStart = autoStartCheckbox.state == .on
+    }
+
     @objc private func copyAddress() {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(addressField.stringValue, forType: .string)
+        copyAccessAddress()
     }
 
     @objc private func openHome() {
-        NSWorkspace.shared.open(baseURL)
+        openHomePage()
     }
 
     @objc private func openPagesFolder() {
@@ -372,7 +611,12 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
             return
         }
 
-        let pageURL = pages[row].relativePath
+        let page = pages[row]
+        guard page.enabled else {
+            return
+        }
+
+        let pageURL = page.relativePath
             .split(separator: "/")
             .reduce(baseURL) { partialURL, component in
                 partialURL.appendingPathComponent(String(component))
@@ -415,7 +659,6 @@ private final class PageCellView: NSTableCellView {
         pathLabel.lineBreakMode = .byTruncatingMiddle
 
         groupLabel.font = .systemFont(ofSize: 11, weight: .medium)
-        groupLabel.textColor = .controlAccentColor
         groupLabel.alignment = .right
 
         let textStack = NSStackView(views: [titleLabel, pathLabel])
@@ -447,6 +690,7 @@ private final class PageCellView: NSTableCellView {
     func configure(with page: StaticPage) {
         titleLabel.stringValue = page.title
         pathLabel.stringValue = page.relativePath
-        groupLabel.stringValue = page.group
+        groupLabel.stringValue = page.enabled ? page.group : "已隐藏"
+        groupLabel.textColor = page.enabled ? .controlAccentColor : .secondaryLabelColor
     }
 }

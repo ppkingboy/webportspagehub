@@ -1,0 +1,11 @@
+{
+  "pages": {
+    "pages/system-login/index.html": {
+      "title": "系统登录",
+      "description": "安华金和系统登录页面",
+      "group": "系统",
+      "enabled": true,
+      "order": 10
+    }
+  }
+}

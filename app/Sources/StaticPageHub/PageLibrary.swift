@@ -3,8 +3,13 @@ import Foundation
 struct StaticPage: Codable, Identifiable {
     let id: String
     let title: String
+    let description: String
     let relativePath: String
     let group: String
+    let enabled: Bool
+    let order: Int
+    let cover: String?
+    let openInNewWindow: Bool
 }
 
 enum PageLibraryError: LocalizedError {
@@ -27,6 +32,7 @@ enum PageLibraryError: LocalizedError {
 final class PageLibrary {
     let rootURL: URL
     private let bundledWebURL: URL
+    private let metadataURL: URL
 
     init(fileManager: FileManager = .default) throws {
         guard let resourceURL = Bundle.main.resourceURL else {
@@ -49,11 +55,14 @@ final class PageLibrary {
         rootURL = applicationSupport
             .appendingPathComponent("安华金和静态页面", isDirectory: true)
             .appendingPathComponent("Web", isDirectory: true)
+        metadataURL = rootURL.appendingPathComponent("pages.json")
 
         try preparePagesDirectory(fileManager: fileManager)
     }
 
     func scanPages(fileManager: FileManager = .default) -> [StaticPage] {
+        let metadata = loadMetadata()
+
         guard let enumerator = fileManager.enumerator(
             at: rootURL,
             includingPropertiesForKeys: [.isRegularFileKey],
@@ -80,21 +89,34 @@ final class PageLibrary {
             }
 
             let relativePath = relativeComponents.joined(separator: "/")
+            let pageMetadata = metadata[relativePath]
+            let title = pageMetadata?.title
+                ?? pageTitle(at: fileURL)
+                ?? fileURL.deletingPathExtension().lastPathComponent
+
             pages.append(
                 StaticPage(
                     id: relativePath,
-                    title: pageTitle(at: fileURL) ?? fileURL.deletingPathExtension().lastPathComponent,
+                    title: title,
+                    description: pageMetadata?.description ?? "",
                     relativePath: relativePath,
-                    group: pageGroup(for: relativeComponents)
+                    group: pageMetadata?.group ?? pageGroup(for: relativeComponents),
+                    enabled: pageMetadata?.enabled ?? true,
+                    order: pageMetadata?.order ?? Int.max,
+                    cover: pageMetadata?.cover,
+                    openInNewWindow: pageMetadata?.openInNewWindow ?? false
                 )
             )
         }
 
         return pages.sorted {
-            if $0.group == $1.group {
-                return $0.title.localizedStandardCompare($1.title) == .orderedAscending
+            if $0.order != $1.order {
+                return $0.order < $1.order
             }
-            return $0.group.localizedStandardCompare($1.group) == .orderedAscending
+            if $0.group != $1.group {
+                return $0.group.localizedStandardCompare($1.group) == .orderedAscending
+            }
+            return $0.title.localizedStandardCompare($1.title) == .orderedAscending
         }
     }
 
@@ -160,5 +182,32 @@ final class PageLibrary {
             }
             try fileManager.copyItem(at: source, to: destination)
         }
+
+        if !fileManager.fileExists(atPath: metadataURL.path) {
+            let source = bundledWebURL.appendingPathComponent("pages.json")
+            try fileManager.copyItem(at: source, to: metadataURL)
+        }
     }
+
+    private func loadMetadata() -> [String: PageMetadata] {
+        guard let data = try? Data(contentsOf: metadataURL),
+              let file = try? JSONDecoder().decode(PageMetadataFile.self, from: data) else {
+            return [:]
+        }
+        return file.pages
+    }
+}
+
+private struct PageMetadataFile: Decodable {
+    let pages: [String: PageMetadata]
+}
+
+private struct PageMetadata: Decodable {
+    let title: String?
+    let description: String?
+    let group: String?
+    let enabled: Bool?
+    let order: Int?
+    let cover: String?
+    let openInNewWindow: Bool?
 }

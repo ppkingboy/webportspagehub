@@ -250,6 +250,13 @@ h1 {
   overflow-wrap: anywhere;
 }
 
+.page-description {
+  margin-bottom: 14px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
 .page-path {
   margin-top: auto;
   overflow: hidden;
@@ -309,4 +316,3 @@ h1 {
     grid-template-columns: 1fr;
   }
 }
-
