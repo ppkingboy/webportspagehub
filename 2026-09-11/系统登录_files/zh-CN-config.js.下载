@@ -1,0 +1,290 @@
+/**
+ * Created by hi on 2017/4/1.
+ */
+var language = {
+    "common":{
+        "IP_address_cannot_be_empty" : "IP地址不能为空",
+        "IP_address_error_format" : "IP地址格式错误",
+        "Port_cannot_be_empty" : "端口不能为空",
+        "Port_format_error" : "端口格式不正确",
+        "Learning_model" : "学习中",
+        "Protection_mode" : "保护中",
+        "database" : "数据库",
+        "table_name" : "表名",
+        "table_field" : "字段",
+        "fun_name" : "函数",
+        "list": "列表",
+        "pleaseInput":"请输入",
+//        "nameCanNotBeEmpty" : "名称不能为空",
+//        "nameIsNotLegal" : "名称不合法，只能使用汉字、大小写字母、数字、@、-、.、_（半角英文字符）"
+    },
+    "layConfirmBtn":["确定","取消"],
+    "daterangepicker":{
+        "applyLabel" : '确定',
+        "cancelLabel" : '取消',
+        "fromLabel": "从",
+        "toLabel": "到",
+        "customRangeLabel": "自定义时间",
+        "daysOfWeek": [ "日", "一",  "二", "三", "四", "五", "六" ],
+        "monthNames": [ "一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"]
+    },
+    "DataTable":{
+        "sProcessing":   "加载中...",
+        "sLengthMenu":   "每页 _MENU_ 项",
+        "sZeroRecords":  "没有匹配结果",
+        "sInfo":         "当前显示第 _START_ 至 _END_ 项，共 _TOTAL_ 项。",
+        "sInfoEmpty":    "当前显示第 0 至 0 项，共 0 项",
+        "sInfoFiltered": "(由 _MAX_ 项结果过滤)",
+        "sInfoPostFix":  "",
+        "sSearch":       "搜索：",
+        "sUrl":          "",
+        "sEmptyTable":     "表中数据为空",
+        "sLoadingRecords": "载入中...",
+        "sInfoThousands":  ",",
+        "oPaginate": {
+            "sFirst":    "首页",
+            "sPrevious": "上页",
+            "sNext":     "下页",
+            "sLast":     "末页",
+            "sJump":     "跳转"
+        },
+        "oAria": {
+            "sSortAscending":  ": 以升序排列此列",
+            "sSortDescending": ": 以降序排列此列"
+        },
+    },
+    "database":{
+        "NotYetEdited" : "您还有未编辑的内容,还不能添加新的内容！",
+        "NotYetMessage":"您还没有填写内容，还不能保存"
+    },
+     "ruleTypeInfo": {
+    	"sentence_rule": [0,"过滤语句"],
+    	"trust_rule": [1,"信任语句"],
+    	"sensitive_rule": [2,"敏感语句"],
+    	"sqlinject_rule": [3,"注入攻击"],
+    	"virpath_rule": [4,"漏洞攻击"],
+    	"oper_rule": [5,"操作规则"],
+    	"session_rule": [6,"访问规则"],
+    	"password_attack": [7,"口令攻击"],
+    	"mask_rule": [8,"脱敏规则"],
+    	"extend_rule": [999,"扩展规则"],
+    	"medical_rule": [101,"防统方规则"]
+    },
+    "riskTypeName":{
+    	"rowNum" : "序号",
+        "sqlName":"SQL语句",
+        "time":"时间",
+        "database":"数据库",
+        "riskType" : "风险类型",
+        "riskName" :"风险名称",
+        "riskLevel":"风险等级",
+        "dbName":"数据库名称",
+        "dbUser":"数据库用户",
+        "dbClient":"客户端IP",
+        "dbClientName":"客户端IP名称",
+        "program_nm":"客户端工具",
+        "app_username":"应用用户名",
+        "app_clientip":"应用客户端IP",
+        "relatedRuleName":"所属语句规则",
+        "affect_rows":"影响行数",
+        "result_control":"控制动作",
+        "ack_errmsg":"执行结果",
+        "token_user":"令牌用户",
+        "db_instance_name":"服务(实例)名",
+        /*风险源*/
+        "database":"数据库",
+        "alarmsCount":"命中量"
+    },
+    "ruleRiskInfo": {
+    	"trust_level": [0,"信任"],
+    	"low_level": [1,"低风险"],
+    	"middle_level": [3,"中风险"],
+    	"high_level": [5,"高风险"],
+    },
+    "networkStatus": {
+    	"link" : [1,"连接"],
+    	"disconnect" : [0,"断开"]
+    },
+    "promptMessage" : {
+    	"successTitle" : "成功提示",
+    	"errorTitle" : "错误提示",
+    	"success" : "成功",
+    	"error" : "失败",
+    	"checkTitle" : "校验提示",
+    },
+    "cardManageSaveCheck":{
+        "nameEmpty":"网卡组名称不能为空",
+        "bridgeInterfaceNeeded":"缺少组成网桥组的网卡",
+        "proxyNameEmpty":"代理组名称不能为空",
+        "proxyIpIllegal":"代理IP不合法",
+        "proxyMaskIllegal":"代理子网掩码不合法",
+        "proxyGatewayIllegal":"代理网关不合法",
+        "proxyPortNotNull":"请至少添加一个可用端口",
+        "changeGroupType":"切换部署模式将删除当前网卡组信息，是否继续？",
+        "portRangeError":"端口:{0},范围不正确,建议使用推荐范围内的端口",
+        "portIsUsedError":"端口:{0},正在使用,建议使用推荐范围内的端口",
+        "portDuplicate":"代理端口已经被添加",
+        "ifPortIsNull":"请确认填写端口再进行添加",
+        "managerInterfaceSaveSuccess" : "管理网卡信息保存成功",
+        "managerInterfaceIPChanged" : "管理网卡IP已变更，请重新登录"
+    },
+    "cardManageName":{
+        "bypassName" : "旁路",
+        "proxyName" : "代理",
+        "bridgeName": "网桥"
+    },
+    "manageInterfaceChanged":{
+        "pleaseLoginAgain":"管理接口变更成功"
+    },
+    "deployModelType": {
+    	"manage_group": [1,"管理接口"],
+    	"bridge_group": [4,"网桥组"],
+    	"proxy_group": [3,"代理组"],
+    	"byway_group": [2,"旁路组"],
+    	"translucent_bridge_group": [5,"半透明网桥组"]
+    },
+    "databaseMonitorType":["管理网卡","旁路组","代理组","网桥组","半透明网桥组"],//废弃
+    "databaseLearnRemainingTime":"后切换为保护状态",
+    "databaseBypassNoSelection":"未选择网卡组",
+    "databaseDeleteConfirm":"确定删除数据库？",
+    "databaseDeleteConfirmCondition":"同时删除学习期规则组",
+    "databaseSQLServerCheckInfoNotComplete" : "请填写用户名和密码",
+    "databaseSQLServerCheckAddrNotComplete" : "数据库地址存在错误",
+    "databaseAddressCheck":{
+        "proxyGroupIsNeeded" : "请正确配置代理组及端口",
+        "proxyGroupPortIsNeeded":"请选择代理端口",
+        "proxyGroupIsDuplicated" : "代理组信息重复，请确认",
+        "groupIdStrIsNeeded" : "请至少选择一个网卡组"
+    },
+    "databaseSaveCheck":{
+        "databaseSaveTip" : "请确保多地址属于同一数据库",
+        "databaseNameNotEmpty":"数据库名称不能为空",
+        "databaseNameNotLegal":"数据库名称不合法",
+        "databaseVersionNotEmpty":"请选择数据库版本",
+        "databaseLearnEndTimeNotEmpty":"学习模式下学习截止时间为必填项",
+        "databaseAddressNotEmpty":"请至少添加一条数据库地址",
+        "databaseAddressMaximum" : "数据库地址不能超过十二条",
+        "addressDuplication" : "数据库地址重复",
+        "groupPortDuplication":"代理组信息重复",
+        "wrongNetworkConfig":"网络配置错误",
+        "proxyGroupIsNeeded":"请正确配置代理组信息",
+        "changeRunMode":"请确认是否切换到保护模式（保护模式下将按照指定的策略规则，执行风险防护动作）",
+        "maximumDBAddr":"最多添加{{n}}条地址",
+        "realUserNotEmpty":"用户名不能为空"
+    },
+    "databaseVersionCheck":{
+        "serviceNameNotEmpty":"数据库实例名不能为空"
+    },
+    "ruleConditon": {
+    	"equalCondition": ["0","等于"],
+    	"noEqualCondition": ["1","不等于"],
+    	"containCondition": ["2","包含"],
+    	"noContainCondition": ["3","不包含"],
+    	"gularCondition": ["5","正则"],
+    	"greaterEqualCondition": ["6","大于等于"],
+    	"lessEqualCondition": ["7","小于等于"],
+    	"betweenCondition": ["8","BETWEEN"],
+    	"greaterCondition": ["9","大于"],
+    	"lessCondition": ["10","小于"],
+    },
+    "allGroupType": {
+    	"databaseObject": ["0","数据库对象"],
+    	"databaseUser": ["1","数据库用户"],
+    	"appUser": ["2","应用用户"],
+    	"ip": ["3","IP"],
+    	"time": ["4","时间"],
+    	"database": ["10","数据库"],
+    	"ruleGroup": ["11","规则"]
+    },
+    "menuLevelType": {
+        "first" : [1,"一级菜单"],
+        "second" : [2,"二级菜单"]
+    },
+    "groupManage":{
+        "ordinal":"序号",
+        "databaseGroup":"数据库组",
+        "ipGroup":"IP地址组",
+        "dbUserGroup":"数据库用户组",
+        "appUserGroup":"应用用户组",
+        "timeGroup":"时间组",
+        "objectGroup":"对象组",
+        "descriptor":"描述信息",
+        "databaseNumber":"数据库个数",
+        "databaseType":"数据库类型",
+        "changeTime":"修改时间",
+        "templateName":"名称",
+        "templateObjectsNumber":"内对象个数",
+        "objectGroupName":"对象组名称",
+        "relationsObjectNumber":"关联对象个数",
+        "operation":"操作",
+        "name":"名称"
+    },
+    "groupType":{
+        "object": [0, "数据库对象"],
+        "dbUser": [1, "数据库用户"],
+        "appUser": [2, "应用用户"],
+        "ip": [3, "IP"],
+        "time": [4, "时间"],
+        "database": [10, "数据库"],
+        "rule": [11, "规则"],
+    },
+    "controlMovementType": {
+    	"pass" : [0,"放行"],
+        "interdiction" : [1,"阻断"],
+        "intercept" : [2,"拦截"]
+    },
+    "executionResult": {
+    	"failure" : [0,"失败"],
+    	"success" : [1,"成功"],
+    	"unknown" : [2,"未知"],
+        "interdiction" : [3,"阻断"],
+        "intercept" : [4,"拦截"]
+    },
+    "auditMethod": {
+        "alarmAudit" : [0,"告警审计"],
+        "onlyAudit" : [1,"仅审计"],
+        "noAudit" : [2,"不审计"]
+    },
+    "auditResult": {
+        "engineSet" : [2,"按引擎管理设置 "],
+        "definedAudit" : [1,"审计"],
+        "noAudit" : [0,"不审计"]
+    },
+    "notificationConfig":{
+        "failToGetNotificationConfigInfo" : "获取通知设置失败",
+        "successToSetNotificationConfigInfo" : "保存告警通知设置成功",
+        "failToSetNotificationConfigInfo" : "保存告警通知设置失败",
+        "testEMailAddressIsEmpty" : "测试邮件地址为空，无法进行测试",
+        "noServiceIsChecked" : "注意！没有选择任何通知提示服务，通知开关状态将不被保存，是否继续？"
+    },
+    "supportDB" : {
+        "Oracle" : [ 1, "Oracle", 1 ],
+        "SQLServer" : [ 2, "SQL Server", 2 ],
+        "Sybase" : [ 4, "Sybase ASE", 6 ],
+        "DB2" : [ 8, "Db2", 4 ],
+        "MySql" : [ 32, "MySQL", 3 ],
+        "Postgres" : [ 64, "PostgreSQL", 5 ],
+        "DM" : [ 128, "DM", 7 ],
+        "KingBase" : [ 256, "KingbaseES", 9 ],
+        "GBase" : [ 512, "GBase 8a", 8 ],
+        "Informix" : [ 1024, "Informix", 10 ],
+        "CacheDB" : [ 2048, "InterSystems Cache", 12 ],
+        "Oscar" : [ 4096, "OSCAR", 11 ],
+        "Gbase8t" : [ 8192, "GBase 8t", 13 ],
+        "HBase" : [ 16384, "HBase", 14 ],
+        "MongoDB" : [ 16896, "MongoDB", 15 ],
+        "Sentry" : [ 17408, "Sentry", 20 ],
+        "Hive" : [ 18432, "Hive", 16 ],
+        "HDFS" : [ 19456, "HDFS", 22 ],
+        "Redis" : [ 20224, "Redis", 21 ],
+        "Impala" : [ 20480, "Impala", 19 ],
+        "Hana" : [ 24576, "SAP HANA", 18 ],
+        "GaussDB T" : [ 30784, "GaussDB T", 34],
+        "GaussDB A" : [ 64, "GaussDB A", 35],
+        "MariaDB" : [ 4, "MariaDB", 24],
+        "Percona" : [ 4, "Percona", 25],
+        "SG-RDB(MySQL)" : [ 4, "SG-RDB(MySQL)", 26],
+        "Greenplum" : [ 5, "Greenplum", 27],
+        "SG-RDB(PostgreSQL)" : [ 5, "SG-RDB(PostgreSQL)", 28]
+    }
+};

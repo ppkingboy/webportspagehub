@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>静态页面展示</title>
+  <link rel="stylesheet" href="./assets/site.css">
+</head>
+<body>
+  <main class="page-shell">
+    <header class="site-header">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">SP</div>
+        <div>
+          <h1>静态页面展示</h1>
+          <p id="page-count">正在读取页面...</p>
+        </div>
+      </div>
+
+      <label class="search-box">
+        <span class="sr-only">搜索页面</span>
+        <input id="search" type="search" placeholder="搜索页面" autocomplete="off">
+      </label>
+    </header>
+
+    <section class="toolbar" aria-label="页面工具">
+      <div id="groups" class="group-filters"></div>
+      <button id="reload" class="secondary-button" type="button">刷新</button>
+    </section>
+
+    <section id="grid" class="page-grid" aria-live="polite"></section>
+
+    <section id="empty" class="empty-state" hidden>
+      <h2>暂无页面</h2>
+      <p>将 HTML 文件添加到页面目录后刷新。</p>
+    </section>
+  </main>
+
+  <script src="./assets/site.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,953 @@
+var _lang = getCookie("locale");
+if (!_lang) {
+    _lang = 'zh-CN';
+
+    setCookie('locale', _lang);
+}else{//防守
+    _lang = _lang.replace('_','-');
+    if (/^zh-HK|zh-TW/ig.test(_lang)) {
+        _lang = 'zh-TW';
+    } else if (/^zh/ig.test(_lang)) {
+        _lang = 'zh-CN';
+    } else if (/^en/ig.test(_lang)) {
+        _lang = 'en-US';
+    }else{
+        _lang = 'zh-CN';
+    }
+}
+dbsec.langType = _lang;
+var isIE = !!window.ActiveXObject || "ActiveXObject" in window;
+var isIE6 = isIE && !window.XMLHttpRequest;
+var isIE8 = isIE && !!document.documentMode;
+var isIE7 = isIE && !isIE6 && !isIE8;
+var Promise;//Promise对象
+requirejs.config({
+    waitSeconds: 0,
+    baseUrl: this.hostRes || "",
+    urlArgs: "r=" + (new Date()).getTime(),
+    paths: {
+        "rules":"deps/rules",
+        "login": "login",//用户登陆
+
+        "loginCSS": dbsec.root + "/theme/" + dbsec.skin + "/css/login" + dbsec.css,
+        "index": dbsec.root + "/public/js/index",
+        //首页
+        "indexCSS": dbsec.root + "/theme/" + dbsec.skin + "/css/index" + dbsec.css,
+
+        "header": dbsec.root + "/application/common/header/header",
+        //首页 JS
+        "headerHTML": dbsec.root + "/application/common/header/header.html",
+        //首页 HTML
+        "headerCSS": dbsec.root + "/application/common/header/header" + dbsec.css,
+        "language": dbsec.root + "/language/" + dbsec.langType,// 基础语言包
+        "language-config": dbsec.root + "/language/" + dbsec.langType + '-config',// 语言包-老代码key+语言
+        "lang-system": dbsec.rootPath + "/project/language/" + dbsec.langType,// 系统语言包 20190720
+
+        "jquery": dbsec.root + "/lib/jquery",
+        // JQUERY
+        "cookie": dbsec.root + "/lib/jquery.cookie",
+        // 会话cookie
+        "text": dbsec.root + "/lib/text",
+        // 插件 载入一个页面
+        "style": dbsec.root + "/lib/css.min",
+        // 插件 载入一个CSS
+        "avalon": dbsec.root + "/lib/avalon/avalon",
+        // 迷你简单易用的前端MVVM框架
+        "mmRouter": dbsec.root + "/lib/avalon/mmRouter",
+        //avalon 路由
+        "domReady": dbsec.root + "/lib/domReady",
+        "layer": dbsec.root + "/lib/layer/layer",
+        "moment": dbsec.root + "/lib/bootstrap-daterangepicker/moment.min",
+        "bootstrap": dbsec.root + "/lib/bootstrap-5.1.3/dist/js/bootstrap.min",
+        "bootstrapCSS": dbsec.root + "/lib/bootstrap-5.1.3/dist/css/bootstrap.min.css",
+        "fontawesome": dbsec.root + "/lib/bootstrap-2.3.2/css/font-awesome.min.css",
+        "des": dbsec.root + "/lib/Vikey/des",
+        //加密
+        "vikey": dbsec.root + "/lib/Vikey/vikey",
+        //加密狗控件
+        "common": dbsec.root + "/application/common/function",
+        "pageFunction": dbsec.root + "/application/common/pageFunction",
+        //常量使用
+        "constant": dbsec.root + "/application/common/constant",
+        "sysConstant": dbsec.rootPath + "/project/common/sysConstant",
+        //时间区间插件
+        "daterangepicker": dbsec.root + "/lib/bootstrap-daterangepicker/daterangepicker",
+        "daterangepickerCSS": dbsec.root + "/lib/bootstrap-daterangepicker/daterangepicker.css",
+        "daterangepickerHelper": dbsec.root + "/application/common/daterangepickerHelper",
+        "dateRangePickerDeal": dbsec.root + '/lib/dateRangePickerDeal',
+        //时间插件
+        "bootstrapDateTimePicker": dbsec.root + "/lib/bootstrap-datetimepicker/js/bootstrap-datetimepicker.min",
+        "plugins-lang": dbsec.root + '/lib/plugins-lang',
+        //时间插件语言包,
+        "bootstrapDatetimepickerCSS": dbsec.root + "/lib/bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css",
+        // 时间插件
+        "promise": dbsec.root + "/lib/avalon/promise",
+        "validateJs": dbsec.root + "/application/common/validate", //校验
+        /*表格创建*/
+        "jqgridSrc": dbsec.root + "/lib/jqgrid/js/jquery.jqGrid.src",
+        "grid.locale-cn": dbsec.root + "/lib/jqgrid/js/grid.locale-" + dbsec.langType,
+        "jqGridDeal": dbsec.root + "/lib/jqgrid/js/jqGridDeal",
+        "jqGridHelper": dbsec.root + "/application/common/jqGridHelper",
+        "jqgridCSS": dbsec.root + "/lib/jqgrid/css/ui.jqgrid.css",
+        "jqueryUICSS": dbsec.root + "/lib/jqgrid/css/jquery-ui.css",
+        "jqValidate": dbsec.root + "/lib/jquery.validate",
+        "datatables.bs": dbsec.root + "/lib/datatables/media/js/dataTables.bootstrap.min",
+        "datatables.net": dbsec.root + "/lib/datatables/media/js/jquery.dataTables.min",
+        "colResizable": dbsec.root + "/lib/colresizable/colResizable-1.6.min",
+        //分页插件一
+        "page": dbsec.root + "/lib/pagination/simplePagination",
+        "pageCSS": dbsec.root + "/lib/jqgrid/css/simplePagination.css",
+        "pageHelper": dbsec.root + "/lib/pagination/simplePaginationHelper",
+        "pageDeal": dbsec.root + "/lib/pagination/paginationDeal",
+        //分页插件二
+        "pagination": dbsec.root + "/lib/pagination/jquery.pagination",
+        "paginationCSS": dbsec.root + "/lib/pagination/pagination.css",
+        "paginationHelper": dbsec.root + "/lib/pagination/paginationHelper",
+        "fn.progress": dbsec.root + "/lib/pagination/fn.progress", //加载进度
+        //下拉选择框插件
+        "select2": dbsec.root + "/lib/bootstrap-select2/dist/js/select2",
+        "select2-lang": dbsec.root + "/lib/bootstrap-select2/dist/js/i18n/" + dbsec.langType,
+        "select2CSS": dbsec.root + "/lib/bootstrap-select2/dist/css/select2.min.css",
+        //icheck
+        "icheck": dbsec.root + "/lib/iCheck-1.0.1/icheck.min",
+        "icheckCSS": dbsec.root + "/lib/iCheck-1.0.1/all.css",
+        //主题样式
+        "skinCSS": dbsec.root + "/theme/" + dbsec.skin + "/css/style" + dbsec.css,
+        "ajaxfileupload": dbsec.root + '/lib/ajaxfileupload',
+        "bootstrapSwitch": dbsec.root + '/lib/bootstrap-switch/js/bootstrap-switch.min',
+        "bootstrapSwitchCSS": dbsec.root + '/lib/bootstrap-switch/css/bootstrap3/bootstrap-switch.min.css',
+        "folder": dbsec.root + '/lib/jquery.folder',
+        "sessionTimeout": dbsec.rootPath + '/project/widget/sessionTimeout/sessionTimeout',
+        "bootstrapSelect": dbsec.root + "/lib/bootstrap-select/js/bootstrap-select.min",
+        "bootstrapSelect-lang": dbsec.root + "/lib/bootstrap-select/js/i18n/defaults-"+dbsec.langType.replace('-','_')+".min",
+        "bootstrapSelectCSS": dbsec.root + "/lib/bootstrap-select/css/bootstrap-select.min.css",
+        "go": dbsec.root + "/lib/go",
+        "scrollbar": dbsec.root + "/lib/jquery-scrollbar/jquery.scrollbar",//滚动条
+        "scrollbarCSS": dbsec.root + "/lib/jquery-scrollbar/jquery.scrollbar.css",
+        "slimscroll": dbsec.root +"/lib/slimScroll/jquery.slimscroll.min",
+        "globalFn":dbsec.rootPath + "/project/common/globalFn",
+        // 自定义插件 -扩展
+        "avalonExtend":dbsec.root + "/application/common/dbsecDesign/avalon-extend",
+        // 自定义插件 -可输可选可查可翻页,单选多选皆可以。
+        "selectTable": dbsec.root + "/application/common/dbsecDesign/selectTable/avalon.selectTable",
+        "selectTableHTML": dbsec.root + "/application/common/dbsecDesign/selectTable/avalon.selectTable.html",
+        "selectTableCSS": dbsec.root + "/application/common/dbsecDesign/selectTable/avalon.selectTable.css",
+        "allCss": dbsec.root + "/lib/iCheck-1.0.1/flat/_all.css",//dbsec.root + "/application/common/dbsecDesign/selectTable/skin/_all.css",//跟其他页面使用的样式冲突
+        // 自定义插件 -分页。
+        "avalonPageHelperHTML":dbsec.root + "/application/common/dbsecDesign/pageHelper/avalon.pageHelper.html",
+        "avalonPageHelperCSS":dbsec.root + "/application/common/dbsecDesign/pageHelper/avalon.pageHelper.css",
+        "avalonPageHelper":dbsec.root + "/application/common/dbsecDesign/pageHelper/avalon.pageHelper",
+        //新增插件20191227
+        "shCore":dbsec.root+"/lib/SyntaxHighlighter/shCore",
+        "shCoreCSS":dbsec.root+"/lib/SyntaxHighlighter/shCore.css",
+        "shThemeEclipseCSS":dbsec.root+"/lib/SyntaxHighlighter/shThemeEclipse.css",
+        "shBrushJScript":dbsec.root+"/lib/SyntaxHighlighter/shBrushJScript",
+        "monacoEditor":dbsec.root+"/lib/monacoEditor/min/vs/loader",
+        "cxcolor":dbsec.root+"/lib/jquery.cxcolor/jquery.cxcolor.min",
+        "cxcolorCSS":dbsec.root+"/lib/jquery.cxcolor/jquery.cxcolor.css",
+    },
+    shim: {
+        "jquery": {
+            deps: ["language", "avalon", "mmRouter", "domReady"]
+        },
+        "cookie": {
+            deps: ["jquery"]
+        },
+        "avalon": {
+            deps:["language"],
+            exports: "avalon"
+        },
+        "mmRouter": {
+            deps: ["avalon"]
+        },
+        "bootstrap": {
+            deps: ["jquery"]
+        },
+        "layer": {
+            deps: ["jquery", "cookie"]
+        },
+
+        "jqgridSrc": {
+            deps: ["jquery", "style!jqgridCSS", "style!jqueryUICSS"]
+        },
+        "pageDeal": {
+            deps: ["page", "jqgridSrc"]
+        },
+        "jqGridDeal": {
+            deps: ["jqgridSrc", "style!pageCSS", "pageDeal"]
+        },
+        // 用户登录
+        "login": {
+            deps: ["jquery", "layer", "bootstrap"]
+        },
+        "style!loginCSS": {
+            deps: ["style!bootstrapCSS"]
+        },
+        "select2-lang": {
+            deps: ["select2"]
+        },
+        "select2": {
+            deps: ["style!select2CSS"]
+        },
+        "bootstrapDateTimePicker": {
+            deps: ["style!bootstrapDatetimepickerCSS"]
+        },
+        "icheck": {
+            deps: ["style!icheckCSS"]
+        },
+        "constant": {
+            deps: ["language"]
+        },
+        "sysConstant": {
+            deps: ["language"]
+        },
+        "style!indexCSS": {
+            deps: ["style!bootstrapCSS"]
+        },
+        "style!skinCSS": {
+            deps: ["style!bootstrapCSS"]
+        },
+        "datatables.bs": {
+            deps: ["jquery", "datatables.net"]
+        },
+        "bootstrapSwitch": {
+            deps: ["style!bootstrapSwitchCSS"]
+        },
+        "bootstrapSelect":{
+            deps:["style!bootstrapSelectCSS"]
+        },
+        "bootstrapSelect-lang":{
+            deps:["bootstrapSelect"]
+        },
+        "dateRangePickerDeal":{
+            deps:["daterangepicker","style!daterangepickerCSS"]
+        },
+        "lang-system":{
+            deps:["language"]
+        },
+        "scrollbar": { deps: ["style!scrollbarCSS"]},
+        "shBrushJScript":{
+            deps:[
+                "shCore",
+                "style!shCoreCSS",
+                "style!shThemeEclipseCSS"
+            ]},
+        "cxcolor":{
+            deps:["style!cxcolorCSS"]
+        }
+    }
+});
+
+var dbsecSystem = {
+    paramData: {
+        dbId:''//全部数据库
+    },
+    navigations:{},//导航集合
+    getNavigations: function(){
+        var navs = this.topNav && this.topNav.topNavList;
+        var newNavObj = {};
+        if(navs.length){
+            for(var i = 0; i < navs.length; i ++){
+                var submenu = navs[i].submenu,
+                    menuId = navs[i].menuid,
+                    url = navs[i].url;
+                if(submenu.length){
+                    for(var ii = 0; ii < submenu.length; ii ++){
+                        var menu = submenu[ii],
+                            menuId2 = menu.menuid,
+                            url2 = menu.url;
+                        newNavObj[url2] = menuId2;
+                    }
+                }else{
+                    newNavObj[url] = menuId;
+                }
+            }
+        }
+        this.navigations = newNavObj;
+    },
+    init: function() {
+        for (var i = 0; i < dbsecSystem.scripts.length; i++) {
+            var pageid = dbsecSystem.scripts[i].getAttribute("pageid");
+            if (pageid) {
+                dbsecSystem.loadPageScript(pageid);
+            }
+        }
+    },
+    timer: [],
+    // 全局定时器组
+    loading: function(e) {
+        if(!dbsec.loadingClose){
+            if (e) {
+                dbsecSystem.pageloading = layer.load(0, {
+                    shade: [0.5, '#fff'] //0.1透明度的白色背景
+                });
+            } else {
+                layer.close(dbsecSystem.pageloading);
+            }
+        }
+    },
+    leaveEvent: [], // 离开事件
+    callback: function() {
+        var hash = dbsecSystem.hash();
+        if (hash) {
+            dbsecSystem.loadPageScript(hash);
+        }
+        for (var i = 0; i < dbsecSystem.leaveEvent.length; i++) {
+            dbsecSystem.leaveEvent[i]();
+        }
+    },
+    scripts: document.getElementsByTagName("script"),
+    main: {},
+    routeCallback: function(){
+        return false;
+    },
+    loadPageScript: function(pageId) {
+        var _thatParent = parent.dbsecSystem?parent.dbsecSystem:this;
+        pageId = (pageId == 'detail' ? 'noStyle' : pageId);
+        var pageIdArr = pageId.replace(/[&\|\\\//*^%$#@]/g, "").split("-");
+        if( typeof dbsecSystem.routeCallback == "function" && dbsecSystem.routeCallback(pageIdArr) ){
+            return false;
+        }
+        switch (pageId) {
+            case "myApp":
+                document.getElementsByTagName('body')[0].className = "body_" + _lang.replace("-","_").toLowerCase();
+                var innerIframeDepList = ['language','avalon', 'mmRouter', 'jquery', 'layer', 'language-config','style!skinCSS'];
+                var pathname = window.location.pathname.replace(/[&\|\\\//*^%$#@\-]/g, "");
+                if (pathname.indexOf("web_frame.html") > -1) {
+                    innerIframeDepList = ['language','avalon', 'mmRouter', 'jquery', 'layer', 'language-config'];
+                }
+                (dbsec.session !== false) && (innerIframeDepList.push('sessionTimeout'));
+                require(innerIframeDepList,
+                    function() {
+                        avalon.config({
+                            debug: dbsec.debug
+                        });
+                        dbsec.myApp = avalon.define({
+                            $id: 'myApp',
+                            contentPage: "",
+                            L: LANGUAGE,
+                            langList:dbsec.langList,
+                            authLogin: false,//认证
+                            productCode: _thatParent.paramData.productCode,//产品类型
+                            oem: _thatParent.paramData.oemCode,//oem,
+                            isTesting:_thatParent.paramData.isTesting
+                        });
+                        avalon.router.add("/:tab", dbsecSystem.callback);
+                        //启动路由监听
+                        avalon.history.start({
+                            root: "/" + dbsec.defaultPage
+                        });
+                        dbsecSystem.loading(true);
+                        layer.config({
+                            path: dbsec.root + '/lib/layer/'
+                        });
+                        var hash = dbsecSystem.hash();
+                        //首次加载跳转到第一个界面
+                        //                        if (!hash) {
+                        //                            dbsecSystem.locationHref(dbsec.defaultPage);
+                        //                        }
+                    });
+                break;
+            case "login":
+                // 初期化
+                require(['style!loginCSS', 'login', 'style!fontawesome', 'des', 'vikey'],
+                    function(undefined, login) {
+                        layer.config({
+                            path: dbsec.root + '/lib/layer/'
+                        });
+                        login.init();
+                    });
+                break;
+            case "index":
+                document.getElementsByTagName('body')[0].className = "body_" + _lang.replace("-","_").toLowerCase();
+                var outerIframeDepList = ['index', 'style!indexCSS'];
+                (dbsec.session !== false) && (outerIframeDepList.push('sessionTimeout'));
+                // 初期化
+                dbsecSystem.main.contentShow = {
+                    visibility: "hidden"
+                };
+                require(outerIframeDepList,
+                    function(index) {
+                        avalon.config({
+                            debug: dbsec.debug
+                        });
+                        avalon.router.add("/:tab", dbsecSystem.callback);
+                        //启动路由监听
+                        avalon.history.start({
+                            root: "/" + dbsec.defaultPage
+                        });
+                        layer.config({
+                            path: dbsec.root + '/lib/layer/'
+                        });
+                        //                        //首次加载跳转到第一个界面
+                        //                        if (!dbsecSystem.hash()) {
+                        //                            dbsecSystem.locationHref(dbsec.defaultPage);
+                        //                        }
+                        //                        $.ajaxSetup({
+                        //                            type: "POST",
+                        //                            error: function(jqXHR, textStatus, errorThrown) {
+                        //                                dbsecSystem.ajaxMonitor(jqXHR.status, true);
+                        //                            }
+                        //                        });
+                        index.init();
+                    });
+                break;
+            case "noStyle":
+                var pageV = dbsecSystem.get.page;
+                var baseDep = ['language','avalon', 'mmRouter', 'jquery', 'layer', 'bootstrap', 'language-config'];
+                var dCsss = ['style!skinCSS', 'style!bootstrapCSS'];
+                var depAry = [];
+                var isFramePage = [];
+                var isJsUrl = depAry;
+                var hash = dbsecSystem.hash();
+                if (hash.indexOf(".js") != -1) {
+                    var bootstrap = dbsecSystem.get.bootstrap;
+                    depAry = baseDep.concat(dCsss);
+                    if(bootstrap=="false"){
+                        depAry = ['language','avalon', 'mmRouter', 'jquery', 'layer', 'language-config'];
+                    }
+                    isFramePage = [hash.replace('#!/', '')];
+                } else {
+                    var dConfig = [dbsec.moduleRoot + "/" + pageV + "/config.js"];
+                    depAry = baseDep.concat(dConfig, dCsss);
+                };
+                dbsec.appRoot = dbsec.moduleRoot + "/" + pageV;
+                dbsec.appHelper = dbsec.moduleRoot + "/common/helper";
+                require(depAry, function() {
+                    layer.config({
+                        path: dbsec.root + '/lib/layer/'
+                    });
+                    if (pageV) {
+                        var noStyle = avalon.define({
+                            $id: "noStyle",
+                            contentPage: "",
+                            componentName: 'ms-' + pageV,
+                            L:LANGUAGE,
+                            options: {
+                                title: true
+                            }
+                        });
+                        require([ "pages/" + pageV + "/" + pageV,"text!pages/" + pageV + "/" + pageV +".html"], function(pageFn,html) {
+                            noStyle.contentPage = html;
+                            avalon.scan(document.body);
+                            if(pageFn 	&& typeof pageFn.init == 'function'){
+                                pageFn.init();
+                            }
+                        });
+                    } else {
+                        require(isFramePage, function(jsFn) {
+                            jsFn.init();
+                        });
+                    }
+                });
+                break;
+            default:
+                var pathname = window.location.pathname.replace(/[&\|\\\//*^%$#@\-]/g, "");
+                if (pathname.indexOf("web_frame.html") > -1) {
+                    pageId = pageIdArr[0];
+                    require(dbsecSystem.buildPage(pageId),
+                        function(_$, page, css) {
+                            require(dbsecSystem.buildCss(pageId),
+                                function(css) {
+                                    dbsec.myApp.contentPage = page;
+                                    avalon.scan(document.body);
+                                    if(dbsec.navLeft){
+                                        $("#content").addClass('content-nav-left').parent().addClass('wrapper-header-left');
+                                    }
+                                    if (typeof _$.init == "function") {
+                                        _$.init();
+                                    } else {
+                                        dbsecSystem.loading(false);
+                                    }
+                                });
+                            if(isIE){
+                                require(['promise'],function(pm){
+                                    Promise = pm;
+                                });
+                            }
+                        });
+                } else {
+                    dbsecSystem.iframeLoad(pageId);
+                }
+                break;
+        }
+    },
+    iframeLoad: function(pageId) {
+        var p = pageId;
+        if ( dbsec && dbsec.uiCore == 'vue' && p.indexOf('v_') === 0 ) {
+            var pvue = p.substring(2).split('_').join('/');
+            var newParam = "";
+            let request = localStorage.getItem(p) ? JSON.parse(localStorage.getItem(p)) : {};
+            if(Object.keys(request).length > 0){
+                if(request.query){
+                    newParam += '?'+request.query;
+                    localStorage.removeItem(p);//query的是加到url里，传递后清除
+                }else{
+                    //params传递的在vue路由里面接收后清除
+                    //newParam += '/'+request.params;
+                }
+            }
+            p = 'pagesvue/index.html#/' + pvue.split('-')[0] + newParam;
+        } else {
+            p = 'web_frame.html#!/' + p;
+        }
+        dbsecSystem.main.contentPage = "<iframe frameborder=\'0\' border=\'0\' id=\'iframeReport\' src=\'" + p + "\' class=\'iframe-content\'></iframe>'";
+        if (dbsec.navLeft) {
+            dbsecSystem.main.contentPage = "<iframe frameborder=\'0\' border=\'0\' id=\'iframeReport\' src=\'" + p + "\' class=\'iframe-content\' style='padding-left: 224px'></iframe>'";
+        }
+        dbsecSystem.main.contentShow = {
+            visibility: "visible"
+        };
+        if(isIE){
+            avalon.scan(document.body);
+        }
+    },
+    ajaxMonitor: function(stateCode, type) {
+        switch (stateCode) {
+            case (500): //服务器系统内部错误
+                if (type) {
+                    window.location.href = dbsec.staticPath + "/login.html";
+                } else {
+                    dbsecSystem.sessionTimeout("服务器系统内部错误！");
+                }
+                break;
+            case (401): //未登录
+                if (type) {
+                    window.location.href = dbsec.staticPath + "/login.html";
+                } else {
+                    dbsecSystem.sessionTimeout("没有登录！");
+                }
+                break;
+            case (499): //用户过期
+                if (type) {
+                    window.location.href = dbsec.staticPath + "/login.html?s=out";
+                } else {
+                    dbsecSystem.sessionTimeout("用户过期！");
+                }
+                break;
+            case (403): //无权限执行此操作
+                if (type) {
+                    window.location.href = dbsec.staticPath + "/login.html";
+                } else {
+                    dbsecSystem.alert('无权限执行此操作');
+                }
+                break;
+            case (408): //请求超时
+                if (type) {
+                    window.location.href = dbsec.staticPath + "/login.html";
+                } else {
+                    dbsecSystem.sessionTimeout("请求超时！");
+                }
+                break;
+            default: //未知错误
+                if (type) {
+                    //window.location.href = dbsec.staticPath + "/login.html";
+                } else {
+                    dbsecSystem.sessionTimeout;
+                    ("未知错误！");
+                }
+        }
+    },
+    logoutTimer: '',
+    sessionTimeout: function(msg) {
+        var num = 10;
+        var txt = "<p id='sessionTimeout'>" + msg + " <b>" + num + "</b> 秒 后返回登录页！</p>";
+        var _that = this;
+        if (!this.logoutTimer) {
+            parent.layer.alert(txt, {
+                icon: 0,
+                skin: 'layer-ext-moon',
+                closeBtn: 0
+            }, function(index) {
+                parent.window.location.href = dbsec.staticPath + '/login.html';
+                layer.close(index);
+            });
+            reduceCount();
+            this.logoutTimer = setInterval(function() {
+                reduceCount();
+            }, 1000);
+        }
+
+        function reduceCount() {
+            parent.$("#sessionTimeout").find("b").text(num);
+            if (num == 0) {
+                clearInterval(_that.logoutTimer);
+                parent.window.location.href = dbsec.staticPath + '/login.html?s=out';
+            }
+            num--;
+        }
+        // 某些情况下，弹出会话过期后会再次弹出loading层，导致按钮不可用
+        setInterval(function() {
+            dbsecSystem.loading(false);
+        }, 10);
+    },
+    locationHref: function(info) {
+        if (!info || info == "") {
+            return;
+        }
+        var start = info.indexOf("#!/") == -1 ? "#!/" : "";
+        window.location.href = start + info;
+        return false;
+    },
+    buildPage: function(name) {
+        if(dbsec && dbsec.uiCore == 'vue'){
+            name = dbsecSystem.compatibleVue(name)
+        }
+        requirejs.config({
+            paths: {
+                "dbsec_module_pageJS": dbsec.moduleRoot + "/" + name + "/" + name,
+                "dbsec_module_pageHTML": dbsec.moduleRoot + "/" + name + "/" + name + ".html",
+                "dbsec_module_pageConfig": dbsec.moduleRoot + "/" + name + "/config"
+            },
+            shim: {
+                "dbsec_module_pageConfig": {
+                    deps: ["text!dbsec_module_pageHTML"]
+                },
+                "dbsec_module_pageJS": {
+                    deps: ["dbsec_module_pageConfig"]
+                }
+            }
+        });
+        var url = [];
+        url.push("dbsec_module_pageJS", "text!dbsec_module_pageHTML");
+        dbsec.appRoot = dbsec.moduleRoot + "/" + name;
+        dbsec.appHelper = dbsec.moduleRoot + "/common/helper";
+        return url;
+    },
+    buildCss: function(name) {
+        if(dbsec && dbsec.uiCore == 'vue'){
+            name = dbsecSystem.compatibleVue(name)
+        }
+        // 处理兼容其他产品 样式冲突问题
+        var skinCss = "";
+        if(!dbsec.skinClose){
+            skinCss = "style!skinCSS";
+        }
+        requirejs.config({
+            paths: {
+                "dbsec_module_pageCSS": dbsec.moduleRoot + "/" + name + "/" + name + dbsec.css,
+                "skinCSS": dbsec.root + "/theme/" + dbsec.skin + "/css/style" + dbsec.css
+            },
+            shim: {
+                "style!dbsec_module_pageCSS": {
+                    deps: [skinCss]
+                }
+            }
+        });
+        var url = []
+        url.push("style!dbsec_module_pageCSS", skinCss);
+        return url;
+    },
+    /**
+     * 非jsp页面时，初始化，设置防csrf的token校验值
+     */
+    getTokenInfo: function(url) {
+        var _url = url?url:dbsec.rootPath + "/user/getTokenInfo.action" + "?t=" + Math.random();
+        dbsecSystem.ajax({
+            async: false,
+            type: "get",
+            dataType: "json",
+            data: {},
+            url: _url,
+            success: function(result) {
+                dbsec.sessionTokenValue = result.content;
+            },
+            error: function(xhr, errorText, errorType) {}
+        });
+        $.ajaxSetup({
+            headers: {
+                'x-access-token': dbsec.sessionTokenValue
+            }
+        });
+    },
+    get: (function() {
+        var url = decodeURI(window.document.location.href.toString());
+        url = url.replace(/\\\\/g, "\\");
+        url = url.replace(/&#92;/g, "\\");
+        url = url.replace(/&quot;/g, "\"");
+        url = url.replace(/&#39;/g, "\'");
+        url = url.replace(/&gt;/g, ">");
+        url = url.replace(/&lt;/g, "<");
+        url = url.replace(/&amp;/g, "&");
+        var u = url.split("?");
+        if (typeof(u[1]) == "string") {
+            u = u[1].split("&");
+            var get = {};
+            for (var i in u) {
+                var j = u[i].split("=");
+                get[j[0]] = j[1];
+            }
+            return get;
+        } else {
+            return {};
+        }
+    })(),
+    hash: function() {
+        return location.hash.replace(/#!?\//, "").split('?')[0];
+    },
+    ajax: function(o) {
+        var defaults = {
+            async: true,
+            type: "post",
+            dataType: "json",
+            contentType: "application/x-www-form-urlencoded; charset=UTF-8",
+            cache: false
+        };
+        var settings;
+        var args = {};
+        var cb1, cb2;
+        if (o && typeof o == "object") {
+            settings = $.extend({}, defaults, o);
+        } else if (arguments.length > 1) {
+            try {
+                args.url = arguments[0] + '?t='+ Math.random();
+                args.success = arguments[1];
+                args.data = arguments[2] ? arguments[2] : {};
+                args.async = typeof arguments[3] == "boolean" ? arguments[3] : false;
+                args.type = arguments[4] ? arguments[4] : "post";
+                args.error = arguments[5] ? arguments[5] : hideLoading;
+                settings = $.extend({}, defaults, args);
+            } catch (e) {
+                console.log("system ajax error!");
+                return;
+            }
+        }
+        settings.url = dbsec.acrossPath + settings.url;
+        if (!settings.success) {
+            settings.success = hideLoading;
+        } else {
+            cb1 = settings.success;
+            settings.success = function(data) {
+                cb1(data);
+            };
+        }
+        if (!settings.error) {
+            settings.error = hideLoading;
+        } else {
+            cb2 = settings.error;
+            settings.error = function(xhr, errorText, errorType) {
+                cb2(errorText);
+            };
+        }
+        $.ajax(settings);
+
+        function hideLoading() {
+            if (top.dbsecSystem.pageloading) {
+                top.dbsecSystem.loading(false);
+            }
+            if (dbsecSystem.pageloading) {
+                dbsecSystem.loading(false);
+            }
+        }
+    },
+    ajaxJson: function(isUrl, callback, dataParam, asyc, type, error) { //参数为json字符串
+        var _asyc = (typeof asyc == 'boolean' ? asyc : true);
+        var _type = type ? type : 'post';
+        var defaults = {
+            data: {},
+            type: "post",
+            contentType: "application/json;charset=utf-8"
+        };
+        var jSettings = {
+            url: isUrl,
+            type: _type,
+            success: callback,
+            data: dataParam,
+            async: _asyc,
+        };
+        error && (jSettings.error = error);
+        jSettings.data = JSON.stringify(jSettings.data);
+        var settings = $.extend({}, defaults, jSettings);
+        this.ajax(settings);
+    },
+    menuJump: function(url) {
+        if (!url) {
+            return;
+        }
+        dbsecSystem.go.call(window,url);
+    },
+    href: function(url,param) {
+        if (!url) {
+            return;
+        }
+        if(param){
+            localStorage.setItem(url,JSON.stringify(param));
+        }
+        dbsecSystem.go.call(parent.window,url);
+    },
+    request:function(h){
+        var hash = h?h:dbsecSystem.hash();
+        var requestData = localStorage.getItem(hash);
+        localStorage.removeItem(hash);
+        return JSON.parse(requestData);
+    },
+    go: function(name){
+        var patrn = /^[a-zA-Z][a-zA-Z0-9_]*(-[0-9]*)*$/g;
+        if(!patrn.test(name)){
+            return;
+        }
+        var lastUrl = this.location.hash.substr(3),
+            curFullUrl = this.location.href;
+        if(lastUrl !== name){
+            if(JSON.stringify(top.dbsecSystem.navigations) === "{}"){
+                top.dbsecSystem.getNavigations();
+            }
+            var menuId = top.dbsecSystem.navigations[name];
+            if( menuId){
+                $.cookie('menuId',menuId);
+            }
+        }
+        this.location.href = curFullUrl.replace(lastUrl,name);
+    },
+    alert: function(content, callback, options) { //提示信息
+        // 缺省参数
+        var delay = 2000;
+        var timer;
+        var defaultOptions = {
+            title: [LANGUAGE.PROMPTMESSAGE.SUCCESSTITLE, 'font-size: 13px;font-weight: normal;'],
+            icon: 1,
+            time: delay, // 2s后自动关闭,
+            btn: [],
+            skin: 'layer-ext-moon'
+        };
+        var _options = options ? $.extend(defaultOptions, options) : defaultOptions;
+        if(_options.cancel && _options.delayCallback){
+            timer = setTimeout(callback,delay);
+            _options.cancel = function(index,olayer){
+                if(timer){
+                    clearTimeout(timer);
+                }
+                if (typeof callback === "function") {
+                    callback(index,olayer);
+                }
+            }
+            layer.alert(content, _options);
+        }else{
+            layer.alert(content, _options);
+            if (typeof callback === "function") {
+                callback();
+            }
+        }
+    },
+    alertError: function(content, callback, options) {
+        var defaultOptions = {
+            title : [LANGUAGE.PROMPTMESSAGE.ERRORTITLE, 'font-size: 13px;font-weight: normal;'],
+            icon : 2,
+            time : 0,
+        };
+        if (typeof options != 'object') {
+            options = {};
+        }
+        options = $.extend(defaultOptions, options);
+        if(options.icon == 0){
+            options.title = LANGUAGE.WARN;
+        }
+        if (typeof callback === "function") {
+            options.cancel = function(index,olayer) {
+                if (typeof callback === "function") {
+                    callback(index,olayer);
+                }
+            }
+        }
+        if(!content){
+            content = LANGUAGE.ERROR.PARAM_ERROR;
+        }
+        if(content && content.length > 300){
+            options.area = ['500px','400px'];
+        }
+        this.alert(content, undefined, options);
+    },
+    getSystemTime: function(callback,async) { //获取系统时间
+        var time,_async = async ? true : false;
+        $.ajax({
+            url: dbsec.acrossPath + dbsec.rootPath + "/home/getSystemCurrentTime.action",
+            type: 'POST',
+            async: _async, //使用同步的方式,true为异步方式
+            success: function(data) {
+                time = data;
+                if (typeof callback == 'function') {
+                    callback(new Date(data));
+                }
+            },
+            error: function() {
+                var date = new Date();
+                time = date.format("yyyy-MM-dd HH:mm:ss");
+                if (typeof callback == 'function') {
+                    callback(new Date());
+                }
+            }
+        });
+        return time;
+    },
+    getUrlParam:function(key,contex){
+        var paramObject = {};
+        var _context = contex?window:parent.window;
+        var url = decodeURI(_context.document.location.href.toString());
+        url = url.replace(/\\\\/g, "\\");
+        url = url.replace(/&#92;/g, "\\");
+        url = url.replace(/&quot;/g, "\"");
+        url = url.replace(/&#39;/g, "\'");
+        url = url.replace(/&gt;/g, ">");
+        url = url.replace(/&lt;/g, "<");
+        url = url.replace(/&amp;/g, "&");
+        var _u = url.split("?");
+        var _paramAry = [];
+        if (typeof(_u[1]) == "string") {
+            _paramAry = _u[1].split("&");
+            for (var i = 0; i < _paramAry.length; i++) {
+                var _keyValueAry = _paramAry[i].split("=");
+                if(_keyValueAry[0] == key){
+                    return _keyValueAry[1];
+                }
+            }
+            return null;
+        } else {
+            return null;
+        }
+    },
+    compatibleVue: (name) => {
+        if (name.indexOf("v_") != -1) {
+            return 'vueProgram'
+        }
+        return name
+    },
+	setRequestHeader: function(header) {
+		if( header && header.name ){
+			$.ajaxSetup({
+				beforeSend: function(xhr){
+					xhr.setRequestHeader(header.name, header.value);
+				}
+			});
+		}
+	}
+}
+
+//读取cookies
+function getCookie(name) {
+    var arr, reg = new RegExp("(^| )" + name + "=([^;]*)(;|$)");
+    if (arr = document.cookie.match(reg)) {
+        return unescape(arr[2]);
+    } else {
+        return null;
+    }
+}
+//写cookies
+function setCookie(name, value) {
+    var Days = 7;
+    var exp = new Date();
+    exp.setTime(exp.getTime() + Days * 24 * 60 * 60 * 1000);
+    document.cookie = name + "=" + escape(value) + ';expires=' + exp.toGMTString();
+}
+
+//初期化执行
+dbsecSystem.init();
+//增加requirejs404的错误处理
+requirejs.onError = function(error){
+    if(error){
+        var _nostyleErr = window.location.href.indexOf('nostyle') !== -1;
+        if(error.xhr && error.xhr.status === 404
+            || _nostyleErr && error.requireType && error.requireType === 'scripterror'){
+            parent.window.location.href = dbsec.rootPath + '/404.html';
+        }
+    }
+}

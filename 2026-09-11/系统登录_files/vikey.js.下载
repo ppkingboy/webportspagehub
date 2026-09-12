@@ -1,0 +1,147 @@
+var ViKeyInterface;
+
+function LoadViKeyInterface() {
+	try {
+		// 创建ViKey加密狗控件
+		if (document.implementation && document.implementation.createDocument && typeof XSLTProcessor != 'undefined') 
+		{ 
+			// chrome, firefox etc
+			//alert("Google");
+			ViKeyInterface= document.getElementById('ViKeyInterface');
+		}
+		else
+		{
+			//alert("IE");
+			ViKeyInterface=new ActiveXObject("ViKeyActiveX.ViKeyInterface.1");
+		}
+		var ViKeyCount;
+		ViKeyCount = ViKeyInterface.IVikeyFind();
+	} catch (e) {
+		return false;
+	}
+	return true;
+}
+
+
+function ViKeyFind() // 查找加密锁
+{
+	var ViKeyCount;	
+	if(ViKeyInterface && (typeof ViKeyInterface.IVikeyFind != 'undefined') && (typeof ViKeyInterface.IVikeyFind() === 'number')){
+		ViKeyCount = ViKeyInterface.IVikeyFind();
+		if (ViKeyInterface.IViKeyGetError() == 0) {
+			return ViKeyCount;
+		} else {
+			return -1;
+		}
+	}else{
+		return -1;
+	}
+}
+
+function ViKeyHID() // 获取硬件序列号
+{
+	var ViKeyIndex;
+	var ViKeyHID;
+
+	ViKeyIndex = 0;
+	ViKeyHID = ViKeyInterface.IVikeyGetHID(ViKeyIndex);
+	if(ViKeyInterface && (typeof ViKeyInterface.IVikeyGetHID != 'undefined') &&  (typeof ViKeyInterface.IVikeyGetHID(ViKeyIndex) === 'number')){
+		if (ViKeyInterface.IViKeyGetError() == 0) {
+			return ViKeyHID;
+		} else {
+			return -1;
+		}
+	}else{
+		return -1;
+	}
+}
+
+function ViKeyAdminLogon() // 以管理员权限登录
+{
+	var ViKeyIndex;
+	ViKeyIndex = 0;
+	var authNumer = "00000000";	// 默认8个0
+	if(ViKeyInterface && (typeof ViKeyInterface.IVikeyAdminLogin != 'undefined')  && (typeof ViKeyInterface.IVikeyAdminLogin(ViKeyIndex, authNumer) === 'number')){
+		ViKeyInterface.IVikeyAdminLogin(ViKeyIndex, authNumer);
+		if (ViKeyInterface.IViKeyGetError() == 0) {
+			return true;
+		} else {
+			return false;
+		}
+	}else{
+		return false;
+	}
+}
+
+function ViKeyWriteData(data) // 写数据到ViKey
+{
+	var ViKeyIndex;
+	var Addr = 0;
+	var Length = 32;
+
+	ViKeyIndex = 0;
+	if(ViKeyInterface && (typeof ViKeyInterface.IVikeyWriteData != 'undefined')  && (typeof ViKeyInterface.IVikeyWriteData(ViKeyIndex, Addr, Length,data) === 'number')){
+		ViKeyInterface.IVikeyWriteData(ViKeyIndex, Addr, Length,data);		
+		if (ViKeyInterface.IViKeyGetError() == 0) {
+			return true;
+		} else {
+			return false;
+		}
+	}else{
+		return -1;
+	}
+}
+
+function ViKeyReadData() // 从ViKey中读取数据
+{
+	var ViKeyIndex;
+	var Addr = 0;
+	var Length = 32;
+	var buffer = "";
+	ViKeyIndex = 0;
+	if(ViKeyInterface && (typeof ViKeyInterface.IVikeyReadData != 'undefined')  && (typeof ViKeyInterface.IVikeyReadData(ViKeyIndex, Addr, Length) === 'string')){
+		buffer = ViKeyInterface.IVikeyReadData(ViKeyIndex, Addr, Length);
+		if (ViKeyInterface.IViKeyGetError() == 0) {
+			return buffer.trim();
+		} else {
+			return false;
+		}
+	}else{
+		return -1;
+	}
+}
+
+function ViKeySetMd5Key(data) // 设置MD5的Key
+{
+	var ViKeyIndex;
+	ViKeyIndex = 0;
+	
+	if(ViKeyInterface && (typeof ViKeyInterface.IVikeySetMD5Key != 'undefined')  && (typeof ViKeyInterface.IVikeySetMD5Key(ViKeyIndex, data) === 'number')){
+		ViKeyInterface.IVikeySetMD5Key(ViKeyIndex, data);
+		if (ViKeyInterface.IViKeyGetError() == 0) {
+			return "设置MD5Key成功";
+		} else {
+			return -1;
+		}
+	}else{
+		return -1;
+	}
+
+}
+
+function VikeyHmacMD5(data) // 计算MD5值
+{
+	var ViKeyIndex;
+	var Length = 32;
+	var buffer = "",ViKeyIndex = 0;
+	if(ViKeyInterface && (typeof ViKeyInterface.IVikeyHmacMD5 != 'undefined')  &&(typeof ViKeyInterface.IVikeyHmacMD5(ViKeyIndex, Length, data) === 'string')){
+		buffer = ViKeyInterface.IVikeyHmacMD5(ViKeyIndex, Length, data);
+		if (ViKeyInterface.IViKeyGetError() == 0) {
+			return buffer;
+		} else {
+			return -1;
+		}
+	}else{
+		return -1;
+	}
+}

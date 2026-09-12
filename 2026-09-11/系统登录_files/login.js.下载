@@ -1,0 +1,589 @@
+var strServerSignedData, strServerRan, strServerCert, objFormSerialize,
+    et99SN;
+var lmUkey,lmUkeyName;
+var locale=getCookie("locale")
+var loginBodyVM=avalon.define({
+    $id: 'loginBodyVM',
+    showOld:false,
+    showNew:false,
+    iframeSrc:''
+});
+var langChange=function(value) {
+    $.cookie('locale', value);
+    window.location.reload();
+}
+//是否需要验证码
+define([dbsec.rootPath + '/project/components/theme.congfig.js','lang-system'], function(loginTheme) {
+    // loginBodyVM.showOld=true
+    // loginBodyVM.showNew=false
+    // loginBodyVM.iframeSrc=''
+    //
+    // loginBodyVM.showNew=true
+    // loginBodyVM.iframeSrc='pagesvue/index.html#/login'
+    // loginBodyVM.showOld=false
+    document.title=LANGUAGE.SYS_LOGIN;
+    $.ajaxSetup({
+        cache: false
+    });
+    $('#mainPage').show();
+    var systemStatus = {}; //系统状态
+    var statusTimer;
+    var systemTheme;
+    var valiRules = 0;
+    var loginVm = avalon.define({
+        $id: 'loginVM',
+        L:LANGUAGE,
+        pageType: 2,
+        runEnv: 1,// 1 NORMAL 2 CLOUD 3 VIRTUAL
+        page: '',
+        validateShow: false,
+        tokenShow: false,
+        lmkeyShow:false,
+        lmkeyHref:dbsec.rootPath + "/downloadFile/mPlugin_SKF_Setup.exe",
+        ukey: {
+            show: false,
+            href: dbsec.rootPath + "/downloadFile/UKWebSocketSetup.exe"
+        },
+        ukey2:{
+            show: false,
+        },
+        ready: false,
+        loginHeight: '280px',
+        $computed: {
+            maxKeys: function(){
+                return this.tokenShow && this.validateShow && this.ukey2.show;
+            }
+        },
+        languageList:dbsec.langList,
+        langSelected: locale ? locale : "zh-CN",
+        langChange: function(e) {
+            $.cookie('locale', e.target.value);
+            window.location.reload();
+        },
+        reloadValidateCode: reloadValidateCode,
+        getUkey2Sign:function(){
+            SetUserCertList("loginForm.UserList", CERT_TYPE_HARD);
+            $.ajax({
+                url: "user/ukey2/sign.action",
+                type:"POST",
+                dataType: "json",
+                data: null,
+                async: false,
+                success: function (result) {
+                    if( result.state == "SUCCESS" ){
+                        strServerSignedData = result.content.signedData;
+                        strServerRan = result.content.random;
+                        strServerCert = result.content.serverCert;
+                    }
+                }
+            });
+        },
+        ukey2Security:function(){
+            var strCertID =  loginForm.UserList.value;
+            var strPin = loginForm.UserPwd.value;
+            loginForm.strRandom.value = strServerRan;
+            Login("loginForm", strCertID, strPin, "#?certid=" + strCertID);
+            var objForm = setInterval(function(){
+                if(objFormSerialize){
+                    clearInterval(objForm);
+                    __doLogin("ukey2Success");
+                }
+            },1000);
+        },
+        doLogin: valiAndLogin,
+        forgetPassword: function() { // 忘记密码
+            //弹出密码找回页面
+            layer.open({
+                title: LANGUAGE.GLOBAL.RECOVER_PASSWORD,//"密码找回",
+                id: "forgetPasswordLayer",
+                btn: [LANGUAGE.ACTION.CONFIRM],
+                area: ['340px'],
+                type: 1,
+                content: '<div class="form-group"><label class="col-xs-3 text-right">' + LANGUAGE.USERNAME + '</label><div class="col-xs-7"><input type="text" id="usernameRecover" class="form-control"></div></div>',
+                btn1: function (index) {
+                    $.post(dbsec.rootPath + "/user/getRandomSeed.action", {}, function(randomSeedResult) {
+                        if (randomSeedResult && randomSeedResult.state != "SUCCESS") {
+                            layer.msg(randomSeedResult.message, function() {
+                            });
+                            return;
+                        } else {
+                            // 随机串seed值
+                            var randomSeedForUserPwd = randomSeedResult.content;
+                            var usernameRecoverVal = $("#usernameRecover").val();
+                            if (usernameRecoverVal == '') {
+                                layer.msg(LANGUAGE.LOGIN.USER_NAME_EMPTY);
+                                return;
+                            }
+                            // 随机串seed值
+                            var randomSeedForUserPwd = randomSeedResult.content;
+                            // 密码加密
+                            usernameRecoverVal = strEnc(usernameRecoverVal, randomSeedForUserPwd, "1", "1");
+                            dbsecSystem.loading(true);
+                            $.ajax({
+                                type: "post",
+                                url: dbsec.rootPath+"/user/recoverPasswd.action",
+                                cache:false,
+                                async:false,
+                                data:{
+                                    uname:usernameRecoverVal,
+                                    langType:dbsec.langType
+                                },
+                                dataType:"json",
+                                success: function(result){
+                                    if (result.state == 'SUCCESS') {
+                                        layer.msg(LANGUAGE.OPER_SUCCESS+LANGUAGE.LOGIN.TO_EMAIL);
+                                        layer.close(index);
+                                    }else{
+                                        layer.msg(result.message);
+                                    }
+                                    dbsecSystem.loading(false);
+                                }
+                            });
+                        }
+                    }, "json");
+
+                }
+            });
+        }
+
+
+    });
+    loginVm.$watch('validateShow', function(a, b, c) {
+        resetLoginHeight();
+    });
+    loginVm.$watch('tokenShow', function(a, b, c) {
+        resetLoginHeight();
+    });
+
+    function init() {
+        getRunEnvironment(); //判断运行环境
+        loginVm.pageType = systemTheme.pageType;
+        avalon.scan(document.body);
+        $("input[name=userName]").focus();
+        isLogin(); //是否登录
+        //getValidateRule(); //获取登录验证规则
+        pageInit();
+        getTimeOutInfo(); // 获取是否是超时返回登录页信息
+        bindEvent();
+        resetLoginHeight();
+        reloadSystemStatus();
+        statusTimer = setInterval(reloadSystemStatus, 5000);
+    }
+    /**
+     * 判断运行环境
+     */
+    function getRunEnvironment() {
+        dbsecSystem.ajax(dbsec.rootPath + "/user/getRunEnvironment.action", function(result) {
+            var reCode = loginVm.runEnv = result.content.reCode;
+            var pCode = result.content.productCode;
+            var oem = result.content.oem,
+                testing = result.content.isTesting,
+                version = result.content.testingVersion;
+            systemTheme = loginTheme.getTheme(pCode,oem,testing,version);
+            if(version==1&&testing==0&&oem!=1&&oem!=2&&oem!=4){
+                loginBodyVM.showNew=true
+                loginBodyVM.iframeSrc='pagesvue/index.html#/login'
+                loginBodyVM.showOld=false
+            }else{
+                loginBodyVM.showOld=true
+                loginBodyVM.showNew=false
+                loginBodyVM.iframeSrc=''
+            }
+
+            // 云环境  使用云版图标
+            if(reCode == 2){
+                if(pCode == 1){
+                    systemTheme.bannerImg = dbsec.rootPath + "/project/images/cloud/login-banner_DBA.png";
+                    systemTheme.versionImg = dbsec.rootPath + "/project/images/cloud/login-version_DBA.png";
+                }else if(pCode == 2){
+                    systemTheme.bannerImg = dbsec.rootPath + "/project/images/cloud/login-banner_DBF.png";
+                    systemTheme.versionImg = dbsec.rootPath + "/project/images/cloud/login-version_DBF.png";
+                }else if(pCode == 9){
+                    systemTheme.bannerImg = dbsec.rootPath + "/project/images/cloud/login-banner_DBCtrl.png";
+                    systemTheme.versionImg = dbsec.rootPath + "/project/images/cloud/login-version_DBCtrl.png";
+                }
+            }
+        }, {}, false, "get");
+    }
+    /**
+     * 获取是否是超时返回登录页信息
+     */
+    function getTimeOutInfo() {
+        var out = $_GET['s'];
+        if (out && out == "out") {
+            updateMessage(LANGUAGE.LOGIN.SESSION_HAS_EXPIRED, '#expirDiv');
+        } else {
+            updateMessage('', '#expirDiv');
+        }
+    }
+    /**
+     * 判断是否已经登录
+     */
+    function isLogin() {
+        dbsecSystem.ajax(dbsec.rootPath + "/user/isLogin.action", function(result) {
+            if (result.content == true) {
+                window.location.href = result.back_url || dbsec.rootPath + "/index.html";
+                require(['cookie'], function() {
+                    $.cookie('heartBeatStr', null);
+                });
+            }
+        });
+    }
+
+    function getUkey2(){
+        require([dbsec.rootPath + "/project/components/XTXSAB.js"],function($){
+            SetAlertFunction(layer.msg);
+            if(!strServerSignedData || !strServerRan || !strServerCert){
+                loginVm.getUkey2Sign();
+                return false;
+            }
+        })
+    }
+
+    /**页面初始化*/
+    function pageInit() {
+        var layout = systemTheme.layout;
+        $("body").addClass(systemTheme.styleCss);
+        if(layout && layout == 2){
+            var $wrapper = $('<div class="banner-wrap"/>'),
+                $leftBanner,$leftBannerWrap,$bannerName,$bannerNameWrap;
+            $bannerName = $("<img/>").attr("src",systemTheme.bannerImg);
+            $bannerNameWrap = $("<div>").attr("class","login-name").append($bannerName);
+            $leftBanner = $("<img/>").attr("src",systemTheme.leftBanner);
+            $leftBannerWrap = $("<div>").attr("class","login-left").append($leftBanner);
+            $wrapper.append($leftBannerWrap,$bannerNameWrap);
+            $(".login-banner").append($wrapper);
+        }else if(systemTheme.bannerImg){
+            $(".login-banner").css("background-image", "url(" + systemTheme.bannerImg + ")");
+        }
+        $(".login-version").css("background-image", "url(" + systemTheme.versionImg + ")");
+        if (systemTheme.bkImg) {
+            $('.login-page').css("background-image", "url(" + systemTheme.bkImg + ")")
+        }
+    }
+    /**
+     * 事件绑定 */
+    function bindEvent() {
+        $('input[name=userName]').on('blur', loginCheckMode).focus();
+        $(document).on('keydown', function(evt) {
+            if (evt.which == 13) {
+                if(evt.target.id === 'btnLogin'){
+                    return;
+                }
+                valiAndLogin();
+            }
+        });
+        $(window).on('resize', function() {
+            resetLoginHeight();
+        });
+    }
+    /**校验与登录*/
+    function valiAndLogin(){
+        if(!valiRules){
+            loginCheckMode(__doLogin);
+            return;
+        }else if(valiRules === 2 && loginVm.ukey.show && !et99SN){
+            dbsecSystem.loading(true);
+            setUkeyET99(__doLogin);
+            return;
+        }
+        __doLogin();
+        return false;
+    }
+    /**
+     * 高度计算 */
+    function resetLoginHeight(diff) {
+        var _offset = diff ? diff : 0;
+        var _height,
+            _lgMarginTop = 39;
+        var _tokenShow = loginVm.tokenShow;
+        var _validateShow = loginVm.validateShow;
+        if (_tokenShow && _validateShow) {
+            _height = 380;
+            _lgMarginTop = 10;
+        } else if (_tokenShow || _validateShow) {
+            _height = 320;
+        } else {
+            _height = 280;
+        }
+        _height -= _offset;
+        loginVm.loginHeight = _height + 'px';
+        $('.theme-base .login-box-body').css('margin-top', _lgMarginTop);
+    }
+    /**
+     * 验证登录方式
+     * @callback 验证登录方式后的回调 用于回车登录时*/
+    function loginCheckMode(callback){
+        var vm = loginVm;
+        var userName = this.value;
+        var param = {
+            userName: userName
+        };
+        valiRules = 1;
+        dbsecSystem.ajax(dbsec.rootPath + '/user/getValidateRule.action', function(result) {
+            valiRules = 2;
+            if (result.state == 'SUCCESS') {
+                var _ukeyShow = result.content.ukeyShow;
+                var lmkeyShow = result.content.lmkeyShow;
+                var _ukey2Show = result.content.ukey2Show;
+                var _needValidateCode = result.content.needValidateCode;
+                var _tokenShow = result.content.utokenShow;
+                vm.validateShow = _needValidateCode;
+                vm.ukey.show = _ukeyShow;
+                vm.ukey2.show = _ukey2Show;
+                vm.tokenShow = _tokenShow;
+                vm.lmkeyShow = lmkeyShow;
+                if(_ukey2Show){
+                    getUkey2()
+                }
+                if (_ukeyShow) {// 是否显示uKey下载功能，初始化UKey控件
+                    setUkeyET99(callback);
+                    return;
+                }
+                if (lmkeyShow) {
+                    // eslint-disable-next-line no-undef, new-cap
+                    lmUkey = new mToken('mTokenPlugin');
+                    const ret = lmUkey.SOF_LoadLibrary(lmUkey.GM3000);
+                    if (ret != 0) {
+                        updateMessage('加载控件失败,错误码:'+lmUkey.SOF_GetLastError(), '#alertDiv');
+                        return;
+                    }
+                    const deviceName = lmUkey.SOF_EnumDevice();
+
+                    if (deviceName != null) {
+                        lmUkeyName = deviceName;
+                    } else {
+                        updateMessage('未检测到Ukey', '#alertDiv');
+                        return;
+                    }
+                    return;
+                }
+                if(typeof callback === 'function'){
+                    callback();
+                }
+            }
+
+        }, param, false, 'get');
+    }
+    /**
+     * 检测ET99-UKey
+     */
+    function setUkeyET99(callback) {
+        require([dbsec.rootPath + '/project/common/ukey/ET99/et99.js'], function(etUkey){
+            etUkey._setUkeyET99(callback);
+        });
+    }
+    /**
+     * 获取url参数 */
+    var $_GET = (function() {
+        var url = window.document.location.href.toString();
+        var u = url.split("?");
+        if (typeof(u[1]) == "string") {
+            u = u[1].split("&");
+            var get = {};
+            for (var i = 0; i < u.length; i++) {
+                var j = u[i].split("=");
+                get[j[0]] = j[1];
+            }
+            return get;
+        } else {
+            return {};
+        }
+    })();
+    /**
+     * 获取系统状态 */
+    function reloadSystemStatus() {
+        dbsecSystem.ajax(dbsec.rootPath + "/user/getSystemStatus.action", function(result) {
+            systemStatus = result.content;
+            if (systemStatus.messages && systemStatus.messages.length > 0) {
+                updateMessage(systemStatus.messages[0], '#alertDiv');
+            } else {
+                updateMessage('', '#alertDiv');
+            }
+        });
+    }
+
+
+    /**
+     * 验证输入内容
+     *
+     * @returns 验证成功，返回表单对象；验证失败，返回false
+     */
+    function validateForm() {
+        var username = $('input[name=userName]').val();
+        var password = $('input[name=pwd]').val();
+        var validateCode = $('input[name=validateCode]').val();
+        var userToken = $('input[name=userToken]').val();
+        if (username == '') {
+            updateMessage(LANGUAGE.LOGIN.USER_NAME_EMPTY, '#alertDiv');
+            $("input[name=userName]").focus();
+            return false;
+        }
+        if(!loginVm.ukey.show && password == ''){
+            updateMessage(LANGUAGE.LOGIN.PASSWORD_EMPTY, '#alertDiv');
+            $("input[name=pwd]").focus();
+            return false;
+        }
+        // 判断验证码
+        if (loginVm.validateShow && validateCode == '') {
+            updateMessage(LANGUAGE.LOGIN.CODE_EMPTY, '#alertDiv');
+            $("input[name=validateCode]").focus();
+            return false;
+        }
+        // 令牌动态码
+        if (loginVm.tokenShow && userToken == '') {
+            updateMessage(LANGUAGE.LOGIN.TOKEN_EMPTY, '#alertDiv');
+            $('input[name=userToken]').focus();
+            return false;
+        }
+        // 龙脉KEY
+        if (loginVm.lmkeyShow && !lmUkeyName) {
+            updateMessage('Ukey加载失败', '#alertDiv');
+            return false;
+        }
+        let sn=et99SN;
+        if(loginVm.lmkeyShow){
+            sn=lmUkeyName
+        }
+        return {
+            upwd: password,
+            uname: username,
+            validateCode: validateCode ? validateCode : '',
+            tfcode:$("#tfcode").val(),
+            uToken: userToken ? userToken : '',
+            ukeyShow: loginVm.ukey.show,
+            sn: sn
+        };
+    }
+    /**
+     * 更显页面提示信息
+     */
+    function updateMessage(msg, selector) {
+        if (statusTimer) {
+            clearInterval(statusTimer);
+            statusTimer = setInterval(reloadSystemStatus, 5000);
+        }
+        if (msg) {
+            $(selector).removeClass("hide");
+            $(selector).text(msg);
+        } else {
+            $(selector).addClass("hide");
+            $(selector).empty();
+        }
+    }
+
+    // 重新加载验证码
+    function reloadValidateCode() {
+        var $picCode = $('.picCode');
+        if($picCode.length){
+            $picCode[0].src = dbsec.rootPath + '/user/getVCode.action?r=' + Math.random();
+        }
+    }
+    /**登录系统*/
+    function __doLogin(skipState){
+        if (!systemStatus.allowLogin) {
+            return;
+        }
+        isLogin();
+        var loginData = validateForm();
+
+        //判断是否ukey2
+        if(loginVm.ukey2.show && skipState !== "ukey2Success"){
+            loginVm.ukey2Security();
+            return;
+        }else if(skipState === "ukey2Success"){
+            $.cookie('ukey2State', true);
+            loginData.UserSignedData = $("#UserSignedData").val();
+            loginData.UserCert = $("#UserCert").val();
+            loginData.ContainerName = $("#ContainerName").val();
+            loginData.strRandom = $("#strRandom").val();
+        }
+
+        if (!loginData) { // 输入验证失败，启用登录按钮
+            $('#login').prop("disabled", false);
+            return false;
+        }
+        var load = layer.load(2, {
+            shade: [0.1, '#fff']
+        });
+
+        // 云环境 加载双因素状态
+        if(loginVm.runEnv==2){
+            var tfisopen = false;
+            $.ajax({
+                type: "get",
+                url: dbsec.rootPath+"/user/getTwoFactorStatus.action",
+                cache:false,
+                async:false,
+                data:{uname:$("input[name=userName]").val()},
+                dataType:"json",
+                success: function(result){
+                    // 开启了双因素登录
+                    if(result){
+                        tfisopen = true;
+                    }
+                }
+            });
+            if(tfisopen){
+                if (loginData.tfcode == '') {
+                    // 请输入安全码;
+                    layer.msg(LANGUAGE.P_INPUT + LANGUAGE.AUTHENTICATOR.DYNAMIC_CODE);
+                    //启用登录按钮
+                    $('#login').prop("disabled", false);
+                    $("#tfcodeDiv").show();
+                    loginVm.validateShow = false;
+                    layer.close(load);
+                    return;
+                }
+            }else{
+                $("#tfcodeDiv").val('').hide();
+                loginVm.validateShow = true;
+            }
+        }
+
+        $('#login').prop("disabled", true); // 禁用登录按钮
+        $.post(dbsec.rootPath + "/user/getRandomSeed.action", {}, function(randomSeedResult) {
+            if (randomSeedResult && randomSeedResult.state != "SUCCESS") {
+                layer.msg(randomSeedResult.message, function() {
+                });
+                reloadValidateCode();
+                $('input[name=pwd]').val('').focus();
+                $('input[name=userToken]').val('');
+                $('#login').prop("disabled", false);
+                return;
+            } else {
+                // 随机串seed值
+                var randomSeedForUserPwd = randomSeedResult.content;
+                // 密码加密
+                loginData.upwd = strEnc(loginData.upwd, randomSeedForUserPwd, "1", "1");
+                // 用户名加密
+                loginData.uname = strEnc(loginData.uname, randomSeedForUserPwd, "1", "1");
+                $.post(dbsec.rootPath + "/user/submitLogin.action", loginData, function(result) {
+                    layer.close(load);
+                    if (result && result.state != "SUCCESS") {
+                        layer.msg(result.message, function() {
+                        });
+                        reloadValidateCode();
+                        $('input[name=pwd]').val('').focus();
+                        $('input[name=userToken]').val('');
+                        $('#login').prop("disabled", false);
+                    } else {
+                        require(['cookie'], function() {
+                            //登录后会存在一个cookie随机数，防止异常登录和单库登录后无法识别是刷新还是跳转。
+                            $.cookie('userRandomCode', Date.parse(new Date())+Math.random());
+                            $.cookie('heartBeatStr', null);
+                            layer.msg(LANGUAGE.LOGIN.LOGIN_SUCCESS);
+                            setTimeout(function() {
+                                window.location.href = result.back_url || dbsec.rootPath + "/index.html";
+                            }, 10)
+                        });
+                    }
+                }, "json");
+            }
+        }, "json");
+        return false;
+    }
+    return {
+        init: init
+    };
+});
